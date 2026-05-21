@@ -1,9 +1,10 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.37216.2 d17.14
+VisualStudioVersion = 17.14.37216.2
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpartanHub", "SpartanHub\SpartanHub.csproj", "{F471E407-617D-46CE-A60E-AB9B072B3194}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpartanHub.Core", "SpartanHub.Core\SpartanHub.Core.csproj", "{A3ECCD44-806D-460F-93C4-A11AD2488926}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +42,22 @@ Global
 		{F471E407-617D-46CE-A60E-AB9B072B3194}.Release|x86.ActiveCfg = Release|x86
 		{F471E407-617D-46CE-A60E-AB9B072B3194}.Release|x86.Build.0 = Release|x86
 		{F471E407-617D-46CE-A60E-AB9B072B3194}.Release|x86.Deploy.0 = Release|x86
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Debug|ARM.ActiveCfg = Debug|ARM
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Debug|ARM.Build.0 = Debug|ARM
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Debug|ARM64.Build.0 = Debug|ARM64
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Debug|x64.ActiveCfg = Debug|x64
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Debug|x64.Build.0 = Debug|x64
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Debug|x86.ActiveCfg = Debug|x86
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Debug|x86.Build.0 = Debug|x86
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Release|ARM.ActiveCfg = Release|ARM
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Release|ARM.Build.0 = Release|ARM
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Release|ARM64.ActiveCfg = Release|ARM64
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Release|ARM64.Build.0 = Release|ARM64
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Release|x64.ActiveCfg = Release|x64
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Release|x64.Build.0 = Release|x64
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Release|x86.ActiveCfg = Release|x86
+		{A3ECCD44-806D-460F-93C4-A11AD2488926}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

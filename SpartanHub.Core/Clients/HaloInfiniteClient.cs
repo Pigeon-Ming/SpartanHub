@@ -1,0 +1,294 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+using SpartanHub.Core.Authentication;
+using SpartanHub.Core.Endpoints;
+using SpartanHub.Core.Exceptions;
+using SpartanHub.Core.Models;
+using SpartanHub.Core.Utilities;
+
+namespace SpartanHub.Core.Clients
+{
+    public class HaloInfiniteClient
+    {
+        private readonly ISpartanTokenProvider _spartanTokenProvider;
+        private readonly HttpClient _httpClient;
+        private readonly JsonSerializerSettings _jsonSettings;
+
+        public HaloInfiniteClient(ISpartanTokenProvider spartanTokenProvider, HttpClient httpClient = null)
+        {
+            _spartanTokenProvider = spartanTokenProvider ?? throw new ArgumentNullException(nameof(spartanTokenProvider));
+            _httpClient = httpClient ?? new HttpClient();
+            _jsonSettings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore
+            };
+        }
+
+        private async Task<HttpResponseMessage> ExecuteRequestAsync(string url, HttpMethod method, bool skipAuth = false)
+        {
+            var request = new HttpRequestMessage(method, url);
+
+            request.Headers.Add("User-Agent", GlobalConstants.HaloPcUserAgent);
+            request.Headers.Add("Accept", "application/json");
+
+            if (!skipAuth)
+            {
+                var spartanToken = await _spartanTokenProvider.GetSpartanTokenAsync().ConfigureAwait(false);
+                request.Headers.Add("x-343-authorization-spartan", spartanToken);
+            }
+
+            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HaloApiException(url, response);
+            }
+
+            return response;
+        }
+
+        private async Task<T> ExecuteJsonRequestAsync<T>(string url, HttpMethod method, bool skipAuth = false)
+        {
+            var response = await ExecuteRequestAsync(url, method, skipAuth).ConfigureAwait(false);
+            var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<T>(content, _jsonSettings);
+        }
+
+        public async Task<UserInfo> GetUserAsync(string gamerTag)
+        {
+            var url = $"https://{HaloCoreEndpoints.Profile}.{HaloCoreEndpoints.ServiceDomain}/users/gt({gamerTag})";
+            return await ExecuteJsonRequestAsync<UserInfo>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        public async Task<UserInfo[]> GetUsersAsync(string[] xuids)
+        {
+            var xuidList = string.Join(",", xuids.Select(x => XuidUtility.UnwrapPlayerId(x)));
+            var url = $"https://{HaloCoreEndpoints.Profile}.{HaloCoreEndpoints.ServiceDomain}/users?xuids={xuidList}";
+            return await ExecuteJsonRequestAsync<UserInfo[]>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        public async Task<PlaylistCsrContainer[]> GetPlaylistCsrAsync(string playlistId, string[] playerIds, string seasonId = null)
+        {
+            var playerIdList = string.Join(",", playerIds.Select(XuidUtility.WrapPlayerId));
+            var urlParams = new StringBuilder($"players={playerIdList}");
+            if (!string.IsNullOrEmpty(seasonId))
+            {
+                urlParams.Append($"&season={seasonId}");
+            }
+
+            var url = $"https://{HaloCoreEndpoints.SkillOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/playlist/{playlistId}/csrs?{urlParams}";
+            var response = await ExecuteJsonRequestAsync<ResultsContainer<PlaylistCsrContainer>>(url, HttpMethod.Get).ConfigureAwait(false);
+            return response.Value.ToArray();
+        }
+
+        public async Task<ServiceRecord> GetUserServiceRecordAsync(string gamerTagOrWrappedXuid, string seasonId = null, string playlistAssetId = null)
+        {
+            var queryParams = new List<string>();
+            if (!string.IsNullOrEmpty(seasonId)) queryParams.Add($"seasonId={seasonId}");
+            if (!string.IsNullOrEmpty(playlistAssetId)) queryParams.Add($"playlistAssetId={playlistAssetId}");
+            var queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
+
+            var url = $"https://{HaloCoreEndpoints.StatsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/players/{gamerTagOrWrappedXuid}/Matchmade/servicerecord{queryString}";
+            return await ExecuteJsonRequestAsync<ServiceRecord>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        public async Task<Playlist> GetPlaylistAsync(string playlistId)
+        {
+            var url = $"https://{HaloCoreEndpoints.GameCmsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/multiplayer/file/playlists/assets/{playlistId}.json";
+            return await ExecuteJsonRequestAsync<Playlist>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        public async Task<PlayerMatchHistory[]> GetPlayerMatchesAsync(string playerXuid, MatchType type = MatchType.All, int count = 25, int start = 0)
+        {
+            var queryParams = new List<string> { $"count={count}", $"start={start}" };
+            if (type != MatchType.All)
+            {
+                queryParams.Add($"type={(int)type}");
+            }
+            var queryString = string.Join("&", queryParams);
+
+            var url = $"https://{HaloCoreEndpoints.StatsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/players/{XuidUtility.WrapPlayerId(playerXuid)}/matches?{queryString}";
+            var response = await ExecuteJsonRequestAsync<PaginationContainer<PlayerMatchHistory>>(url, HttpMethod.Get).ConfigureAwait(false);
+            return response.Results.ToArray();
+        }
+
+        public async Task<MatchCount> GetPlayerMatchCountAsync(string playerXuid)
+        {
+            var url = $"https://{HaloCoreEndpoints.StatsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/players/{XuidUtility.WrapPlayerId(playerXuid)}/matches/count";
+            return await ExecuteJsonRequestAsync<MatchCount>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        public async Task<CurrentUserInfo> GetCurrentUserAsync()
+        {
+            var url = $"https://{HaloCoreEndpoints.CommsOrigin}.{HaloCoreEndpoints.ServiceDomain}/users/me";
+            return await ExecuteJsonRequestAsync<CurrentUserInfo>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        public async Task<MatchStats> GetMatchStatsAsync(string matchId)
+        {
+            var url = $"https://{HaloCoreEndpoints.StatsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/matches/{matchId}/stats";
+            return await ExecuteJsonRequestAsync<MatchStats>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        public async Task<MatchSkill[]> GetMatchSkillAsync(string matchId, string[] playerIds)
+        {
+            var playerIdList = string.Join(",", playerIds.Select(XuidUtility.WrapPlayerId));
+            var url = $"https://{HaloCoreEndpoints.SkillOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/matches/{matchId}/skill?players={playerIdList}";
+            var response = await ExecuteJsonRequestAsync<ResultsContainer<MatchSkill>>(url, HttpMethod.Get).ConfigureAwait(false);
+            return response.Value.ToArray();
+        }
+
+        /// <summary>
+        /// 获取玩家对战隐私设置
+        /// </summary>
+        public async Task<MatchesPrivacy> GetMatchesPrivacyAsync(string playerXuid)
+        {
+            var url = $"https://{HaloCoreEndpoints.StatsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/players/{XuidUtility.WrapPlayerId(playerXuid)}/matches-privacy";
+            return await ExecuteJsonRequestAsync<MatchesPrivacy>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 更新玩家对战隐私设置
+        /// </summary>
+        public async Task<MatchesPrivacy> UpdateMatchesPrivacyAsync(string playerXuid, MatchesPrivacy matchesPrivacy)
+        {
+            var url = $"https://{HaloCoreEndpoints.StatsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/players/{XuidUtility.WrapPlayerId(playerXuid)}/matches-privacy";
+            var content = new StringContent(JsonConvert.SerializeObject(new { matchesPrivacy }), Encoding.UTF8, "application/json");
+            var request = new HttpRequestMessage(HttpMethod.Put, url) { Content = content };
+            var response = await ExecuteRequestWithContentAsync(request).ConfigureAwait(false);
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<MatchesPrivacy>(responseContent, _jsonSettings);
+        }
+
+        /// <summary>
+        /// 获取进度文件
+        /// </summary>
+        public async Task<ProgressionFile> GetProgressionFileAsync(string filename)
+        {
+            var url = $"https://{HaloCoreEndpoints.GameCmsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/Progression/file/{filename}";
+            return await ExecuteJsonRequestAsync<ProgressionFile>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 获取勋章元数据文件
+        /// </summary>
+        public async Task<MedalsMetadataFile> GetMedalsMetadataFileAsync()
+        {
+            var url = $"https://{HaloCoreEndpoints.GameCmsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/Waypoint/file/medals/metadata.json";
+            return await ExecuteJsonRequestAsync<MedalsMetadataFile>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 获取玩家封禁摘要
+        /// </summary>
+        public async Task<BanSummary> GetBanSummaryAsync(string[] xuids)
+        {
+            var xuidList = string.Join(",", xuids.Select(XuidUtility.WrapPlayerId));
+            var url = $"https://{HaloCoreEndpoints.BanProcessorOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/bansummary?targets={xuidList}";
+            return await ExecuteJsonRequestAsync<BanSummary>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 获取封禁消息
+        /// </summary>
+        public async Task<BanMessage> GetBanMessageAsync(string banPath)
+        {
+            var url = $"https://{HaloCoreEndpoints.GameCmsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/banning/file/{banPath}";
+            return await ExecuteJsonRequestAsync<BanMessage>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 获取赛季日历
+        /// </summary>
+        public async Task<SeasonCalendar> GetSeasonCalendarAsync()
+        {
+            var url = $"https://{HaloCoreEndpoints.GameCmsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/progression/file/calendars/seasons/seasoncalendar.json";
+            return await ExecuteJsonRequestAsync<SeasonCalendar>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 获取CSR赛季日历
+        /// </summary>
+        public async Task<CsrSeasonCalendar> GetCsrSeasonCalendarAsync()
+        {
+            var url = $"https://{HaloCoreEndpoints.GameCmsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/progression/file/calendars/csrseasons/csrseasoncalendar.json";
+            return await ExecuteJsonRequestAsync<CsrSeasonCalendar>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        private async Task<HttpResponseMessage> ExecuteRequestWithContentAsync(HttpRequestMessage request)
+        {
+            request.Headers.Add("User-Agent", GlobalConstants.HaloPcUserAgent);
+            request.Headers.Add("Accept", "application/json");
+
+            var spartanToken = await _spartanTokenProvider.GetSpartanTokenAsync().ConfigureAwait(false);
+            request.Headers.Add("x-343-authorization-spartan", spartanToken);
+
+            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HaloApiException(request.RequestUri.ToString(), response);
+            }
+
+            return response;
+        }
+    }
+
+    public class ResultsContainer<T>
+    {
+        [JsonProperty("Value")]
+        public List<T> Value { get; set; }
+    }
+
+    public class PaginationContainer<T>
+    {
+        [JsonProperty("Start")]
+        public int Start { get; set; }
+
+        [JsonProperty("Count")]
+        public int Count { get; set; }
+
+        [JsonProperty("ResultCount")]
+        public int ResultCount { get; set; }
+
+        [JsonProperty("Results")]
+        public List<T> Results { get; set; }
+    }
+
+    public class CurrentUserInfo
+    {
+        [JsonProperty("xuid")]
+        public string xuid { get; set; }
+
+        [JsonProperty("notificationsReadDate")]
+        public string notificationsReadDate { get; set; }
+    }
+
+    public class MatchCount
+    {
+        [JsonProperty("All")]
+        public int All { get; set; }
+
+        [JsonProperty("Matchmade")]
+        public int Matchmade { get; set; }
+
+        [JsonProperty("Custom")]
+        public int Custom { get; set; }
+
+        [JsonProperty("Local")]
+        public int Local { get; set; }
+    }
+
+    public enum MatchType
+    {
+        All = 0,
+        Matchmade = 1,
+        Custom = 2,
+        Local = 3
+    }
+}
