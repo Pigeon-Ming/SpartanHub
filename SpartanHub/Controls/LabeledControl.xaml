@@ -1,0 +1,33 @@
+﻿<UserControl
+    x:Class="SpartanHub.Controls.LabeledControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:SpartanHub.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="300"
+    d:DesignWidth="400"
+    mc:Ignorable="d">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <Style TargetType="TextBlock">
+                <Setter Property="FontSize" Value="18"/>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid Padding="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <TextBlock
+            Name="LabelText"
+            Margin="0,0,0,4"
+            FontSize="16"
+            Foreground="{ThemeResource SystemControlDescriptionTextForegroundBrush}"
+            FontWeight="Medium"
+            Text="{x:Bind Label, Mode=OneWay}"
+            TextWrapping="Wrap" />
+        <ContentPresenter Grid.Row="1" Content="{x:Bind Body, Mode=OneWay}" />
+    </Grid>
+</UserControl>

@@ -2,13 +2,52 @@
     x:Class="SpartanHub.Views.HomePage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:SpartanHub.Views"
+    xmlns:controls="using:SpartanHub.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:SpartanHub.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    mc:Ignorable="d">
+    <Page.Resources>
+        <ResourceDictionary Source="/Dictionaries/MatchStatsResources.xaml" />
+    </Page.Resources>
     <Grid>
-
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="1" Text="总览" />
+        <StackPanel Grid.Row="2" Orientation="Horizontal">
+            <controls:LabeledControl Label="总场数">
+                <TextBlock Text="1056" />
+            </controls:LabeledControl>
+            <controls:LabeledControl Label="通行证等级">
+                <TextBlock Text="376" />
+            </controls:LabeledControl>
+            <controls:LabeledControl Label="总击杀数">
+                <TextBlock Text="11542" />
+            </controls:LabeledControl>
+            <controls:LabeledControl Label="时长">
+                <TextBlock Text="6天16时5分" />
+            </controls:LabeledControl>
+        </StackPanel>
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <controls:LabeledControl Label="赛季">
+                <controls:SessionCardControl HorizontalAlignment="Left" />
+            </controls:LabeledControl>
+            <controls:LabeledControl Grid.Column="1" Label="最近比赛">
+                <Grid>
+                    <ContentPresenter Name="RecentMatchStatsItem" ContentTemplate="{x:Bind MatchStatsItemTemplate, Mode=OneWay}" />
+                </Grid>
+            </controls:LabeledControl>
+        </Grid>
     </Grid>
 </Page>

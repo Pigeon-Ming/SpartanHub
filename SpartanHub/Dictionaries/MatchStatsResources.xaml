@@ -1,0 +1,38 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:SpartanHub.Modals"
+    xmlns:models="using:SpartanHub.Core.Models">
+    <converters:MatchOutcomeToColorConverter x:Key="MatchOutcomeToColorConverter" />
+    <DataTemplate x:Key="MatchStatsItemTemplate" x:DataType="models:MatchStats">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto" />
+                <ColumnDefinition />
+                <ColumnDefinition Width="auto" />
+            </Grid.ColumnDefinitions>
+            <Border
+                Width="4"
+                Margin="0,4,4,4"
+                Background="{x:Bind Teams[0].Outcome, Converter={StaticResource MatchOutcomeToColorConverter}}" />
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <TextBlock
+                    Grid.Row="0"
+                    FontSize="20"
+                    FontWeight="Medium"
+                    Text="{Binding MatchInfo.MapId}" />
+                <TextBlock Grid.Row="1" Text="{Binding MatchInfo.MapModePairId}" />
+                <TextBlock Grid.Row="2" Text="1 Kills 1 Deaths 5 Assists" />
+            </Grid>
+            <TextBlock
+                Grid.Column="2"
+                VerticalAlignment="Center"
+                Text="200:150" />
+        </Grid>
+    </DataTemplate>
+</ResourceDictionary>

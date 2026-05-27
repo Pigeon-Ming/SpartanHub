@@ -2,286 +2,420 @@
     x:Class="SpartanHub.DevPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:SpartanHub"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:SpartanHub"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    mc:Ignorable="d">
 
-    <ScrollViewer>
-        <StackPanel Padding="20" Spacing="15" MaxWidth="800" HorizontalAlignment="Stretch">
-            <TextBlock Text="SpartanHub - 光环无限战绩查询" FontSize="28" FontWeight="Bold" />
-            
-            <TextBlock Text="测试API功能" FontSize="18" Margin="0,10,0,0" />
-            
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBox x:Name="GamerTagTextBox" 
-                         Header="输入GamerTag" 
-                         MaxWidth="300"
-                         PlaceholderText="例如: GravlLift" />
-                <Button x:Name="QueryButton" 
-                        Content="查询" 
-                        VerticalAlignment="Bottom" 
-                        Click="QueryButton_Click" />
-            </StackPanel>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="300" />
+        </Grid.RowDefinitions>
 
-            <ProgressRing x:Name="LoadingRing" 
-                         IsActive="False" 
-                         Width="50" 
-                         Height="50" 
-                         HorizontalAlignment="Left" />
+        <ScrollViewer Grid.Row="0">
+            <StackPanel
+                MaxWidth="800"
+                Padding="20"
+                HorizontalAlignment="Stretch"
+                Spacing="15">
+                <TextBlock
+                    FontSize="28"
+                    FontWeight="Bold"
+                    Text="SpartanHub - 光环无限战绩查询" />
 
-            <TextBlock x:Name="StatusText" 
-                      Text="" 
-                      Foreground="Gray" 
-                      TextWrapping="Wrap" />
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="18"
+                    Text="测试API功能" />
 
-            <Border x:Name="ResultBorder" 
-                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}" 
-                    BorderThickness="1" 
-                    Padding="15" 
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBox
+                        x:Name="GamerTagTextBox"
+                        MaxWidth="300"
+                        Header="输入GamerTag"
+                        PlaceholderText="例如: GravlLift" />
+                    <Button
+                        x:Name="QueryButton"
+                        VerticalAlignment="Bottom"
+                        Click="QueryButton_Click"
+                        Content="查询" />
+                </StackPanel>
+
+                <ProgressRing
+                    x:Name="LoadingRing"
+                    Width="50"
+                    Height="50"
+                    HorizontalAlignment="Left"
+                    IsActive="False" />
+
+                <TextBlock
+                    x:Name="StatusText"
+                    Foreground="Gray"
+                    Text=""
+                    TextWrapping="Wrap" />
+
+                <Border
+                    x:Name="ResultBorder"
+                    Padding="15"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
                     Visibility="Collapsed">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="查询结果" FontSize="20" FontWeight="SemiBold" />
-                    
-                    <StackPanel Orientation="Horizontal" Spacing="15">
-                        <Image x:Name="GamerPicImage" 
-                               Width="64" 
-                               Height="64" 
-                               Stretch="UniformToFill" />
-                        <StackPanel>
-                            <TextBlock x:Name="GamertagResult" FontSize="18" FontWeight="SemiBold" />
-                            <TextBlock x:Name="XuidResult" Foreground="Gray" />
+                    <StackPanel Spacing="10">
+                        <TextBlock
+                            FontSize="20"
+                            FontWeight="SemiBold"
+                            Text="查询结果" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="15">
+                            <Image
+                                x:Name="GamerPicImage"
+                                Width="64"
+                                Height="64"
+                                Stretch="UniformToFill" />
+                            <StackPanel>
+                                <TextBlock
+                                    x:Name="GamertagResult"
+                                    FontSize="18"
+                                    FontWeight="SemiBold" />
+                                <TextBlock x:Name="XuidResult" Foreground="Gray" />
+                            </StackPanel>
                         </StackPanel>
                     </StackPanel>
+                </Border>
+
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="18"
+                    Text="对战历史" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBox
+                        x:Name="MatchHistoryXuidTextBox"
+                        MaxWidth="300"
+                        Header="输入XUID"
+                        PlaceholderText="玩家XUID" />
+                    <Button
+                        x:Name="MatchHistoryButton"
+                        VerticalAlignment="Bottom"
+                        Click="MatchHistoryButton_Click"
+                        Content="查询对战历史" />
                 </StackPanel>
-            </Border>
 
-            <TextBlock Text="对战历史" FontSize="18" Margin="0,10,0,0" />
-            
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBox x:Name="MatchHistoryXuidTextBox" 
-                         Header="输入XUID" 
-                         MaxWidth="300"
-                         PlaceholderText="玩家XUID" />
-                <Button x:Name="MatchHistoryButton" 
-                        Content="查询对战历史" 
-                        VerticalAlignment="Bottom" 
-                        Click="MatchHistoryButton_Click" />
-            </StackPanel>
-
-            <ListView x:Name="MatchHistoryList" 
-                      MaxHeight="300" 
-                      Visibility="Collapsed">
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <TextBlock Text="{Binding MatchId}" FontWeight="SemiBold" Width="200" />
-                            <TextBlock Text="{Binding Outcome}" Width="100" />
-                            <TextBlock Text="{Binding MatchInfo.MapId}" Width="150" />
-                            <Button Content="详细" Click="MatchStatsButton_Click" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-
-            <TextBlock Text="单场比赛详细数据" FontSize="18" Margin="0,10,0,0" />
-            
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBox x:Name="MatchIdTextBox" 
-                         Header="输入MatchId" 
-                         MaxWidth="400"
-                         PlaceholderText="比赛ID" />
-                <Button x:Name="MatchStatsButton" 
-                        Content="查询比赛数据" 
-                        VerticalAlignment="Bottom" 
-                        Click="MatchStatsButton_Click" />
-            </StackPanel>
-
-            <Border x:Name="MatchStatsBorder" 
-                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}" 
-                    BorderThickness="1" 
-                    Padding="15" 
+                <ListView
+                    x:Name="MatchHistoryList"
+                    MaxHeight="300"
                     Visibility="Collapsed">
-                <StackPanel Spacing="5">
-                    <TextBlock Text="比赛统计" FontSize="16" FontWeight="SemiBold" />
-                    <TextBlock x:Name="MatchStatsResult" 
-                               TextWrapping="Wrap" 
-                               FontFamily="Consolas" />
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <TextBlock
+                                    Width="200"
+                                    FontWeight="SemiBold"
+                                    Text="{Binding MatchId}" />
+                                <TextBlock Width="100" Text="{Binding Outcome}" />
+                                <TextBlock Width="150" Text="{Binding MatchInfo.MapId}" />
+                                <Button Click="MatchStatsButton_Click" Content="详细" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="18"
+                    Text="单场比赛详细数据" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBox
+                        x:Name="MatchIdTextBox"
+                        MaxWidth="400"
+                        Header="输入MatchId"
+                        PlaceholderText="比赛ID" />
+                    <Button
+                        x:Name="MatchStatsButton"
+                        VerticalAlignment="Bottom"
+                        Click="MatchStatsButton_Click"
+                        Content="查询比赛数据" />
                 </StackPanel>
-            </Border>
 
-            <TextBlock Text="CSR段位信息" FontSize="18" Margin="0,10,0,0" />
-            
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBox x:Name="CsrXuidTextBox" 
-                         Header="输入XUID" 
-                         MaxWidth="200"
-                         PlaceholderText="玩家XUID" />
-                <TextBox x:Name="CsrPlaylistIdTextBox" 
-                         Header="输入PlaylistId" 
-                         MaxWidth="200"
-                         PlaceholderText="玩法ID" />
-                <Button x:Name="CsrQueryButton" 
-                        Content="查询CSR" 
-                        VerticalAlignment="Bottom" 
-                        Click="CsrQueryButton_Click" />
-            </StackPanel>
-
-            <Border x:Name="CsrResultBorder" 
-                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}" 
-                    BorderThickness="1" 
-                    Padding="15" 
+                <Border
+                    x:Name="MatchStatsBorder"
+                    Padding="15"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
                     Visibility="Collapsed">
-                <StackPanel Spacing="5">
-                    <TextBlock x:Name="CsrResult" 
-                               TextWrapping="Wrap" 
-                               FontFamily="Consolas" />
+                    <StackPanel Spacing="5">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="比赛统计" />
+                        <TextBlock
+                            x:Name="MatchStatsResult"
+                            FontFamily="Consolas"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="18"
+                    Text="CSR段位信息" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBox
+                        x:Name="CsrXuidTextBox"
+                        MaxWidth="200"
+                        Header="输入XUID"
+                        PlaceholderText="玩家XUID" />
+                    <TextBox
+                        x:Name="CsrPlaylistIdTextBox"
+                        MaxWidth="200"
+                        Header="输入PlaylistId"
+                        PlaceholderText="玩法ID" />
+                    <Button
+                        x:Name="CsrQueryButton"
+                        VerticalAlignment="Bottom"
+                        Click="CsrQueryButton_Click"
+                        Content="查询CSR" />
                 </StackPanel>
-            </Border>
 
-            <TextBlock Text="战绩记录" FontSize="18" Margin="0,10,0,0" />
-            
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBox x:Name="ServiceRecordTextBox" 
-                         Header="输入GamerTag" 
-                         MaxWidth="300"
-                         PlaceholderText="玩家GamerTag" />
-                <Button x:Name="ServiceRecordButton" 
-                        Content="查询战绩记录" 
-                        VerticalAlignment="Bottom" 
-                        Click="ServiceRecordButton_Click" />
-            </StackPanel>
-
-            <Border x:Name="ServiceRecordBorder" 
-                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}" 
-                    BorderThickness="1" 
-                    Padding="15" 
+                <Border
+                    x:Name="CsrResultBorder"
+                    Padding="15"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
                     Visibility="Collapsed">
-                <StackPanel Spacing="5">
-                    <TextBlock x:Name="ServiceRecordResult" 
-                               TextWrapping="Wrap" 
-                               FontFamily="Consolas" />
+                    <StackPanel Spacing="5">
+                        <TextBlock
+                            x:Name="CsrResult"
+                            FontFamily="Consolas"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="18"
+                    Text="战绩记录" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBox
+                        x:Name="ServiceRecordTextBox"
+                        MaxWidth="300"
+                        Header="输入GamerTag"
+                        PlaceholderText="玩家GamerTag" />
+                    <Button
+                        x:Name="ServiceRecordButton"
+                        VerticalAlignment="Bottom"
+                        Click="ServiceRecordButton_Click"
+                        Content="查询战绩记录" />
                 </StackPanel>
-            </Border>
 
-            <TextBlock Text="对战隐私设置" FontSize="18" Margin="0,10,0,0" />
-            
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBox x:Name="PrivacyXuidTextBox" 
-                         Header="输入XUID" 
-                         MaxWidth="300"
-                         PlaceholderText="玩家XUID" />
-                <Button x:Name="PrivacyGetButton" 
-                        Content="获取隐私" 
-                        VerticalAlignment="Bottom" 
-                        Click="PrivacyGetButton_Click" />
-                <Button x:Name="PrivacySetButton" 
-                        Content="设置为显示" 
-                        VerticalAlignment="Bottom" 
-                        Click="PrivacySetButton_Click" />
-            </StackPanel>
-
-            <Border x:Name="PrivacyResultBorder" 
-                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}" 
-                    BorderThickness="1" 
-                    Padding="15" 
+                <Border
+                    x:Name="ServiceRecordBorder"
+                    Padding="15"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
                     Visibility="Collapsed">
-                <StackPanel Spacing="5">
-                    <TextBlock x:Name="PrivacyResult" 
-                               TextWrapping="Wrap" 
-                               FontFamily="Consolas" />
+                    <StackPanel Spacing="5">
+                        <TextBlock
+                            x:Name="ServiceRecordResult"
+                            FontFamily="Consolas"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="18"
+                    Text="对战隐私设置" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBox
+                        x:Name="PrivacyXuidTextBox"
+                        MaxWidth="300"
+                        Header="输入XUID"
+                        PlaceholderText="玩家XUID" />
+                    <Button
+                        x:Name="PrivacyGetButton"
+                        VerticalAlignment="Bottom"
+                        Click="PrivacyGetButton_Click"
+                        Content="获取隐私" />
+                    <Button
+                        x:Name="PrivacySetButton"
+                        VerticalAlignment="Bottom"
+                        Click="PrivacySetButton_Click"
+                        Content="设置为显示" />
                 </StackPanel>
-            </Border>
 
-            <TextBlock Text="封禁查询" FontSize="18" Margin="0,10,0,0" />
-            
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBox x:Name="BanXuidTextBox" 
-                         Header="输入XUID" 
-                         MaxWidth="300"
-                         PlaceholderText="玩家XUID" />
-                <Button x:Name="BanQueryButton" 
-                        Content="查询封禁" 
-                        VerticalAlignment="Bottom" 
-                        Click="BanQueryButton_Click" />
-            </StackPanel>
-
-            <Border x:Name="BanResultBorder" 
-                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}" 
-                    BorderThickness="1" 
-                    Padding="15" 
+                <Border
+                    x:Name="PrivacyResultBorder"
+                    Padding="15"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
                     Visibility="Collapsed">
-                <StackPanel Spacing="5">
-                    <TextBlock x:Name="BanResult" 
-                               TextWrapping="Wrap" 
-                               FontFamily="Consolas" />
+                    <StackPanel Spacing="5">
+                        <TextBlock
+                            x:Name="PrivacyResult"
+                            FontFamily="Consolas"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="18"
+                    Text="封禁查询" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBox
+                        x:Name="BanXuidTextBox"
+                        MaxWidth="300"
+                        Header="输入XUID"
+                        PlaceholderText="玩家XUID" />
+                    <Button
+                        x:Name="BanQueryButton"
+                        VerticalAlignment="Bottom"
+                        Click="BanQueryButton_Click"
+                        Content="查询封禁" />
                 </StackPanel>
-            </Border>
 
-            <TextBlock Text="勋章元数据" FontSize="18" Margin="0,10,0,0" />
-            
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <Button x:Name="MedalsButton" 
-                        Content="获取勋章列表" 
-                        Click="MedalsButton_Click" />
-            </StackPanel>
-
-            <Border x:Name="MedalsResultBorder" 
-                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}" 
-                    BorderThickness="1" 
-                    Padding="15" 
+                <Border
+                    x:Name="BanResultBorder"
+                    Padding="15"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
                     Visibility="Collapsed">
-                <StackPanel Spacing="5">
-                    <TextBlock x:Name="MedalsResult" 
-                               TextWrapping="Wrap" 
-                               FontFamily="Consolas" />
+                    <StackPanel Spacing="5">
+                        <TextBlock
+                            x:Name="BanResult"
+                            FontFamily="Consolas"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="18"
+                    Text="勋章元数据" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button
+                        x:Name="MedalsButton"
+                        Click="MedalsButton_Click"
+                        Content="获取勋章列表" />
                 </StackPanel>
-            </Border>
 
-            <TextBlock Text="赛季信息" FontSize="18" Margin="0,10,0,0" />
-            
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <Button x:Name="SeasonButton" 
-                        Content="获取赛季日历" 
-                        Click="SeasonButton_Click" />
-                <Button x:Name="CsrSeasonButton" 
-                        Content="获取CSR赛季" 
-                        Click="CsrSeasonButton_Click" />
-            </StackPanel>
-
-            <Border x:Name="SeasonResultBorder" 
-                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}" 
-                    BorderThickness="1" 
-                    Padding="15" 
+                <Border
+                    x:Name="MedalsResultBorder"
+                    Padding="15"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
                     Visibility="Collapsed">
-                <StackPanel Spacing="5">
-                    <TextBlock x:Name="SeasonResult" 
-                               TextWrapping="Wrap" 
-                               FontFamily="Consolas" />
-                </StackPanel>
-            </Border>
+                    <StackPanel Spacing="5">
+                        <TextBlock
+                            x:Name="MedalsResult"
+                            FontFamily="Consolas"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
 
-            <TextBlock Text="测试Spartan Token" FontSize="18" Margin="0,10,0,0" />
-            
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBox x:Name="TokenTextBox" 
-                         Header="输入Spartan Token" 
-                         MaxWidth="500"
-                         PlaceholderText="输入你的Spartan Token用于认证测试" />
-                <Button x:Name="SetTokenButton" 
-                        Content="设置Token" 
-                        VerticalAlignment="Bottom" 
-                        Click="SetTokenButton_Click" />
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="18"
+                    Text="赛季信息" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button
+                        x:Name="SeasonButton"
+                        Click="SeasonButton_Click"
+                        Content="获取赛季日历" />
+                    <Button
+                        x:Name="CsrSeasonButton"
+                        Click="CsrSeasonButton_Click"
+                        Content="获取CSR赛季" />
+                </StackPanel>
+
+                <Border
+                    x:Name="SeasonResultBorder"
+                    Padding="15"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    Visibility="Collapsed">
+                    <StackPanel Spacing="5">
+                        <TextBlock
+                            x:Name="SeasonResult"
+                            FontFamily="Consolas"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="18"
+                    Text="测试Spartan Token" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBox
+                        x:Name="TokenTextBox"
+                        MaxWidth="500"
+                        Header="输入Spartan Token"
+                        PlaceholderText="输入你的Spartan Token用于认证测试" />
+                    <Button
+                        x:Name="SetTokenButton"
+                        VerticalAlignment="Bottom"
+                        Click="SetTokenButton_Click"
+                        Content="设置Token" />
+                </StackPanel>
+
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    Text="使用说明" />
+                <TextBlock Foreground="Gray" TextWrapping="Wrap">
+                    1. 首先需要获取Spartan Token（通过Xbox Live认证流程）<LineBreak />
+                    2. 输入GamerTag查询玩家信息<LineBreak />
+                    3. 对战历史需要XUID，可从用户信息中获取<LineBreak />
+                    4. 比赛数据需要MatchId，可从对战历史中获取</TextBlock>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <StackPanel
+                Grid.Row="0"
+                Padding="10,5"
+                Orientation="Horizontal"
+                Spacing="10">
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    Text="API 请求日志" />
+                <Button
+                    x:Name="ClearLogButton"
+                    HorizontalAlignment="Right"
+                    Click="ClearLogButton_Click"
+                    Content="清空日志" />
             </StackPanel>
 
-            <TextBlock Text="使用说明" FontSize="16" FontWeight="SemiBold" Margin="0,10,0,0" />
-            <TextBlock TextWrapping="Wrap" Foreground="Gray">
-                1. 首先需要获取Spartan Token（通过Xbox Live认证流程）<LineBreak/>
-                2. 输入GamerTag查询玩家信息<LineBreak/>
-                3. 对战历史需要XUID，可从用户信息中获取<LineBreak/>
-                4. 比赛数据需要MatchId，可从对战历史中获取
-            </TextBlock>
-        </StackPanel>
-    </ScrollViewer>
+            <TextBox
+                x:Name="ApiLogTextBox"
+                Grid.Row="1"
+                Padding="10"
+                AcceptsReturn="True"
+                FontFamily="Consolas"
+                FontSize="12"
+                IsReadOnly="True"
+                TextWrapping="NoWrap" />
+        </Grid>
+    </Grid>
 </Page>

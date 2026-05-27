@@ -19,6 +19,8 @@ namespace SpartanHub.Core.Clients
         private readonly HttpClient _httpClient;
         private readonly JsonSerializerSettings _jsonSettings;
 
+        public Action<ApiLogEntry> OnRequestLog { get; set; }
+
         public HaloInfiniteClient(ISpartanTokenProvider spartanTokenProvider, HttpClient httpClient = null)
         {
             _spartanTokenProvider = spartanTokenProvider ?? throw new ArgumentNullException(nameof(spartanTokenProvider));
@@ -29,33 +31,70 @@ namespace SpartanHub.Core.Clients
             };
         }
 
-        private async Task<HttpResponseMessage> ExecuteRequestAsync(string url, HttpMethod method, bool skipAuth = false)
+        private async Task<HttpResponseMessage> ExecuteRequestAsync(string url, HttpMethod method, string requestBody = null, bool skipAuth = false)
         {
-            var request = new HttpRequestMessage(method, url);
-
-            request.Headers.Add("User-Agent", GlobalConstants.HaloPcUserAgent);
-            request.Headers.Add("Accept", "application/json");
-
-            if (!skipAuth)
+            var logEntry = new ApiLogEntry
             {
-                var spartanToken = await _spartanTokenProvider.GetSpartanTokenAsync().ConfigureAwait(false);
-                request.Headers.Add("x-343-authorization-spartan", spartanToken);
-            }
+                Timestamp = DateTime.Now,
+                Method = method.Method,
+                Url = url,
+                RequestBody = requestBody,
+                StatusCode = 0,
+                IsSuccess = false
+            };
 
-            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
-
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                throw new HaloApiException(url, response);
-            }
+                var request = new HttpRequestMessage(method, url);
 
-            return response;
+                request.Headers.Add("User-Agent", GlobalConstants.HaloPcUserAgent);
+                request.Headers.Add("Accept", "application/json");
+
+                if (!skipAuth)
+                {
+                    var spartanToken = await _spartanTokenProvider.GetSpartanTokenAsync().ConfigureAwait(false);
+                    request.Headers.Add("x-343-authorization-spartan", spartanToken);
+                }
+
+                var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+                logEntry.StatusCode = (int)response.StatusCode;
+                logEntry.IsSuccess = response.IsSuccessStatusCode;
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    logEntry.ErrorMessage = $"HTTP {response.StatusCode}: {errorContent}";
+                    OnRequestLog?.Invoke(logEntry);
+                    throw new HaloApiException(url, response);
+                }
+
+                OnRequestLog?.Invoke(logEntry);
+                return response;
+            }
+            catch (Exception ex) when (!(ex is HaloApiException))
+            {
+                logEntry.ErrorMessage = ex.Message;
+                OnRequestLog?.Invoke(logEntry);
+                throw;
+            }
         }
 
-        private async Task<T> ExecuteJsonRequestAsync<T>(string url, HttpMethod method, bool skipAuth = false)
+        private async Task<T> ExecuteJsonRequestAsync<T>(string url, HttpMethod method, string requestBody = null, bool skipAuth = false)
         {
-            var response = await ExecuteRequestAsync(url, method, skipAuth).ConfigureAwait(false);
+            var response = await ExecuteRequestAsync(url, method, requestBody, skipAuth).ConfigureAwait(false);
             var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            
+            OnRequestLog?.Invoke(new ApiLogEntry
+            {
+                Timestamp = DateTime.Now,
+                Method = method.Method,
+                Url = url,
+                RequestBody = requestBody,
+                ResponseBody = content,
+                StatusCode = 200,
+                IsSuccess = true
+            });
+
             return JsonConvert.DeserializeObject<T>(content, _jsonSettings);
         }
 
@@ -158,9 +197,10 @@ namespace SpartanHub.Core.Clients
         public async Task<MatchesPrivacy> UpdateMatchesPrivacyAsync(string playerXuid, MatchesPrivacy matchesPrivacy)
         {
             var url = $"https://{HaloCoreEndpoints.StatsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/players/{XuidUtility.WrapPlayerId(playerXuid)}/matches-privacy";
-            var content = new StringContent(JsonConvert.SerializeObject(new { matchesPrivacy }), Encoding.UTF8, "application/json");
+            var requestBody = JsonConvert.SerializeObject(new { matchesPrivacy });
+            var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
             var request = new HttpRequestMessage(HttpMethod.Put, url) { Content = content };
-            var response = await ExecuteRequestWithContentAsync(request).ConfigureAwait(false);
+            var response = await ExecuteRequestWithContentAsync(request, requestBody).ConfigureAwait(false);
             var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             return JsonConvert.DeserializeObject<MatchesPrivacy>(responseContent, _jsonSettings);
         }
@@ -220,22 +260,65 @@ namespace SpartanHub.Core.Clients
             return await ExecuteJsonRequestAsync<CsrSeasonCalendar>(url, HttpMethod.Get).ConfigureAwait(false);
         }
 
-        private async Task<HttpResponseMessage> ExecuteRequestWithContentAsync(HttpRequestMessage request)
+        /// <summary>
+        /// 获取资产详情（地图、玩法等）
+        /// </summary>
+        public async Task<AssetDetail> GetAssetDetailAsync(string assetType, string assetId)
         {
-            request.Headers.Add("User-Agent", GlobalConstants.HaloPcUserAgent);
-            request.Headers.Add("Accept", "application/json");
+            var url = $"https://{HaloCoreEndpoints.DiscoveryOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/{assetType}/{assetId}";
+            return await ExecuteJsonRequestAsync<AssetDetail>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
 
-            var spartanToken = await _spartanTokenProvider.GetSpartanTokenAsync().ConfigureAwait(false);
-            request.Headers.Add("x-343-authorization-spartan", spartanToken);
+        /// <summary>
+        /// 获取指定版本的资产详情
+        /// </summary>
+        public async Task<AssetDetail> GetAssetVersionDetailAsync(string assetType, string assetId, string versionId)
+        {
+            var url = $"https://{HaloCoreEndpoints.DiscoveryOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/{assetType}/{assetId}/versions/{versionId}";
+            return await ExecuteJsonRequestAsync<AssetDetail>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
 
-            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
-
-            if (!response.IsSuccessStatusCode)
+        private async Task<HttpResponseMessage> ExecuteRequestWithContentAsync(HttpRequestMessage request, string requestBody = null)
+        {
+            var logEntry = new ApiLogEntry
             {
-                throw new HaloApiException(request.RequestUri.ToString(), response);
-            }
+                Timestamp = DateTime.Now,
+                Method = request.Method.Method,
+                Url = request.RequestUri.ToString(),
+                RequestBody = requestBody,
+                StatusCode = 0,
+                IsSuccess = false
+            };
 
-            return response;
+            try
+            {
+                request.Headers.Add("User-Agent", GlobalConstants.HaloPcUserAgent);
+                request.Headers.Add("Accept", "application/json");
+
+                var spartanToken = await _spartanTokenProvider.GetSpartanTokenAsync().ConfigureAwait(false);
+                request.Headers.Add("x-343-authorization-spartan", spartanToken);
+
+                var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+                logEntry.StatusCode = (int)response.StatusCode;
+                logEntry.IsSuccess = response.IsSuccessStatusCode;
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    logEntry.ErrorMessage = $"HTTP {response.StatusCode}: {errorContent}";
+                    OnRequestLog?.Invoke(logEntry);
+                    throw new HaloApiException(request.RequestUri.ToString(), response);
+                }
+
+                OnRequestLog?.Invoke(logEntry);
+                return response;
+            }
+            catch (Exception ex) when (!(ex is HaloApiException))
+            {
+                logEntry.ErrorMessage = ex.Message;
+                OnRequestLog?.Invoke(logEntry);
+                throw;
+            }
         }
     }
 

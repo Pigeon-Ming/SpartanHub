@@ -6,10 +6,26 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    d:DesignHeight="300"
-    d:DesignWidth="400">
+    d:DesignHeight="69"
+    d:DesignWidth="360">
 
-    <Grid>
-
+    <Grid Height="67.323" Width="360">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="69"/>
+            <ColumnDefinition/>
+            <ColumnDefinition Width="auto"/>
+        </Grid.ColumnDefinitions>
+        <Image Grid.ColumnSpan="3" Source="/Assets/NameplateBackground.png"/>
+        <Grid>
+            <Image/>
+        </Grid>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+            <TextBlock Text="Ming er zb" FontSize="20" FontWeight="Medium"/>
+            <TextBlock Text="JZTE" FontWeight="SemiBold" FontStyle="Italic"/>
+        </StackPanel>
+        <Grid Grid.Column="2" VerticalAlignment="Center">
+            <TextBlock Text="铂金，Ⅱ级"/>
+            <TextBlock Text="+1000XP进入下一等级" Visibility="Collapsed"/>
+        </Grid>
     </Grid>
 </UserControl>
