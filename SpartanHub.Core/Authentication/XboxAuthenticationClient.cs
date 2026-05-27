@@ -13,7 +13,7 @@ namespace SpartanHub.Core.Authentication
         Halo
     }
 
-    public class XboxAuthenticationClient
+    public class XboxAuthenticationClient : IXstsTokenProvider
     {
         private readonly Func<Task<string>> _getOauth2AccessToken;
         private readonly HttpClient _httpClient;
@@ -25,6 +25,16 @@ namespace SpartanHub.Core.Authentication
         {
             _getOauth2AccessToken = getOauth2AccessToken ?? throw new ArgumentNullException(nameof(getOauth2AccessToken));
             _httpClient = httpClient ?? new HttpClient();
+        }
+
+        public async Task<string> FetchTokenAsync()
+        {
+            return await GetXstsTicketAsync(RelyingParty.Halo);
+        }
+
+        public async Task ClearXstsTokenAsync()
+        {
+            await ClearXstsTicketAsync(RelyingParty.Halo);
         }
 
         public async Task<string> GetXstsTicketAsync(RelyingParty relyingParty)

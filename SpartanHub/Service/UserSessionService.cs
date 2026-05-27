@@ -61,7 +61,14 @@ namespace SpartanHub.Service
                 
                 SaveTokenToVault(spartanToken);
                 
-                CurrentUser = await _haloClient.GetCurrentUserAsync();
+                // 获取当前用户信息并转换为 UserInfo
+                var currentUser = await _haloClient.GetCurrentUserAsync();
+                CurrentUser = new UserInfo
+                {
+                    Xuid = currentUser.xuid,
+                    Gamertag = null, // GetCurrentUserAsync 不返回 Gamertag
+                    Gamerpic = null
+                };
                 
                 return true;
             }

@@ -3,7 +3,7 @@ using Windows.UI;
 using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Media;
 
-namespace SpartanHub.Modals
+namespace SpartanHub.Models
 {
     /// <summary>
     /// 将比赛结果（Outcome）转换为对应的颜色

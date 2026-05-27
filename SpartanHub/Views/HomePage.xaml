@@ -45,7 +45,7 @@
             </controls:LabeledControl>
             <controls:LabeledControl Grid.Column="1" Label="最近比赛">
                 <Grid>
-                    <ContentPresenter Name="RecentMatchStatsItem" ContentTemplate="{x:Bind MatchStatsItemTemplate, Mode=OneWay}" />
+                    <ContentPresenter Name="RecentMatchStatsItem" ContentTemplate="{StaticResource MatchStatsItemTemplate}" />
                 </Grid>
             </controls:LabeledControl>
         </Grid>

@@ -135,7 +135,7 @@
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Modals\MatchConverter.cs" />
+    <Compile Include="Models\MatchConverter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Service\MatchDataCacheService.cs" />
     <Compile Include="Service\MetadataService.cs" />

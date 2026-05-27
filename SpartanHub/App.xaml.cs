@@ -31,7 +31,7 @@ namespace SpartanHub
             this.InitializeComponent();
             this.Suspending += OnSuspending;
 
-            Windows.UI.Core.SystemNavigationManager.GetForCurrentView().BackRequested += App_BackRequested;
+            
         }
 
         private void App_BackRequested(object sender, Windows.UI.Core.BackRequestedEventArgs e)
@@ -74,6 +74,8 @@ namespace SpartanHub
 
                 // 将框架放在当前窗口中
                 Window.Current.Content = rootFrame;
+
+                Windows.UI.Core.SystemNavigationManager.GetForCurrentView().BackRequested += App_BackRequested;
             }
 
             if (e.PrelaunchActivated == false)

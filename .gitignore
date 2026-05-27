@@ -370,3 +370,6 @@ FodyWeavers.xsd
 *.msixupload
 *.msixsym
 *.appinstaller
+.idea/.idea.SpartanHub/.idea/encodings.xml
+.idea/.idea.SpartanHub/.idea/indexLayout.xml
+.idea/.idea.SpartanHub/.idea/vcs.xml
