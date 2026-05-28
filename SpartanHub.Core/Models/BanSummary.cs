@@ -2,16 +2,18 @@ using Newtonsoft.Json;
 
 namespace SpartanHub.Core.Models
 {
-    [JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
     public enum BanType
     {
-        Matchmaking = 1
+        Matchmaking = 1,
+        Communication = 2,
+        Gameplay = 3
     }
 
-    [JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
     public enum BanScope
     {
-        Global = 1
+        Global = 1,
+        Multiplayer = 2,
+        Chat = 3
     }
 
     public class BanSummary

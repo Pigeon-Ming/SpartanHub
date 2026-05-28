@@ -362,13 +362,32 @@
                     <TextBox
                         x:Name="TokenTextBox"
                         MaxWidth="500"
-                        Header="输入Spartan Token"
-                        PlaceholderText="输入你的Spartan Token用于认证测试" />
+                        Header="输入 Spartan Token"
+                        PlaceholderText="输入你的 Spartan Token 用于认证测试" />
                     <Button
                         x:Name="SetTokenButton"
                         VerticalAlignment="Bottom"
                         Click="SetTokenButton_Click"
-                        Content="设置Token" />
+                        Content="设置 Token" />
+                </StackPanel>
+
+                <TextBlock
+                    Margin="0,20,0,10"
+                    FontSize="18"
+                    FontWeight="SemiBold"
+                    Text="一键测试所有接口" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button
+                        x:Name="TestAllApiButton"
+                        Click="TestAllApiButton_Click"
+                        Content="一键请求所有 API"
+                        Padding="20,10" />
+                    <TextBlock
+                        x:Name="TestAllStatusText"
+                        VerticalAlignment="Center"
+                        Foreground="Gray"
+                        Text="" />
                 </StackPanel>
 
                 <TextBlock

@@ -760,6 +760,197 @@ namespace SpartanHub
             }
         }
 
+        private async void TestAllApiButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!CheckClient()) return;
+
+            LoadingRing.IsActive = true;
+            TestAllApiButton.IsEnabled = false;
+            ApiLogTextBox.Text = string.Empty;
+            TestAllStatusText.Text = "开始执行...";
+
+            var results = new StringBuilder();
+            results.AppendLine("=== 一键 API 测试结果 ===");
+            results.AppendLine($"时间：{DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            results.AppendLine();
+
+            try
+            {
+                // Step 1: 获取当前用户
+                AppendLogRaw(">>> Step 1: 获取当前用户信息...");
+                var currentUser = await _client.GetCurrentUserAsync();
+                var currentXuid = currentUser.xuid;
+                results.AppendLine($"✓ GetCurrentUserAsync - XUID: {currentXuid}");
+                AppendLogRaw($"当前用户 XUID: {currentXuid}");
+
+                // Step 2: 获取玩家信息（使用 GetUsersAsync 因为传的是 XUID）
+                AppendLogRaw(">>> Step 2: 获取玩家详细信息...");
+                var userInfoArr = await _client.GetUsersAsync(new[] { currentXuid });
+                var userInfo = userInfoArr.FirstOrDefault();
+                var gamerTag = userInfo?.Gamertag ?? "未知";
+                results.AppendLine($"✓ GetUsersAsync - Gamertag: {gamerTag}, XUID: {userInfo?.Xuid}");
+                AppendLogRaw($"玩家信息: Gamertag={gamerTag}");
+
+                // Step 3: 获取对战历史
+                AppendLogRaw(">>> Step 3: 获取对战历史...");
+                var matches = await _client.GetPlayerMatchesAsync(currentXuid, type: MatchType.All, count: 5);
+                results.AppendLine($"✓ GetPlayerMatchesAsync - 获取 {matches.Length} 场对战记录");
+                AppendLogRaw($"对战历史: {matches.Length} 场");
+
+                string firstMatchId = null;
+                string firstMapId = null;
+                string firstPlaylistId = null;
+                string[] firstMatchPlayerIds = null;
+
+                if (matches.Length > 0)
+                {
+                    var firstMatch = matches[0];
+                    firstMatchId = firstMatch.MatchId;
+                    firstMapId = firstMatch.MatchInfo?.MapVariant?.AssetId;
+                    firstPlaylistId = firstMatch.MatchInfo?.Playlist?.AssetId;
+
+                    // Step 4: 获取比赛详情
+                    AppendLogRaw(">>> Step 4: 获取比赛详情...");
+                    var matchStats = await _client.GetMatchStatsAsync(firstMatchId);
+                    results.AppendLine($"✓ GetMatchStatsAsync - MatchId: {firstMatchId}");
+                    results.AppendLine($"  地图ID: {matchStats.MatchInfo.MapId}, 玩法ID: {matchStats.MatchInfo.PlaylistId}");
+                    AppendLogRaw($"比赛详情: 地图={matchStats.MatchInfo.MapId}");
+
+                    // 收集玩家 IDs
+                    firstMatchPlayerIds = matchStats.Players.Take(4).Select(p => p.PlayerId).ToArray();
+
+                    // Step 5: 获取比赛技能数据
+                    if (firstMatchPlayerIds?.Length > 0)
+                    {
+                        AppendLogRaw(">>> Step 5: 获取比赛技能数据...");
+                        var matchSkills = await _client.GetMatchSkillAsync(firstMatchId, firstMatchPlayerIds);
+                        results.AppendLine($"✓ GetMatchSkillAsync - 获取 {matchSkills.Length} 条技能数据");
+                        AppendLogRaw($"比赛技能: {matchSkills.Length} 条");
+                    }
+
+                    // Step 6: 获取 CSR 段位
+                    if (firstPlaylistId != null)
+                    {
+                        AppendLogRaw(">>> Step 6: 获取 CSR 段位...");
+                        var csrs = await _client.GetPlaylistCsrAsync(firstPlaylistId, new[] { currentXuid });
+                        results.AppendLine($"✓ GetPlaylistCsrAsync - Playlist: {firstPlaylistId}, 获取 {csrs.Length} 条段位数据");
+                        AppendLogRaw($"CSR 段位: {csrs.Length} 条");
+                    }
+
+                    // Step 14: 获取地图资产详情
+                    if (firstMapId != null)
+                    {
+                        AppendLogRaw(">>> Step 14: 获取地图资产详情...");
+                        try
+                        {
+                            var mapDetail = await _client.GetAssetDetailAsync("maps", firstMapId);
+                            results.AppendLine($"✓ GetAssetDetailAsync(map) - 地图名称: {mapDetail.GetNameValue()}");
+                            AppendLogRaw($"地图资产: {mapDetail.GetNameValue()}");
+                        }
+                        catch (Exception ex)
+                        {
+                            results.AppendLine($"✗ GetAssetDetailAsync(map) - 失败: {ex.Message}");
+                            AppendLogRaw($"地图资产查询失败: {ex.Message}");
+                        }
+                    }
+
+                    // Step 15: 获取玩法详情
+                    if (firstPlaylistId != null)
+                    {
+                        AppendLogRaw(">>> Step 15: 获取玩法详情...");
+                        try
+                        {
+                            var playlistDetail = await _client.GetPlaylistAsync(firstPlaylistId);
+                            results.AppendLine($"✓ GetPlaylistAsync - 玩法名称: {playlistDetail?.NameHint ?? "N/A"}");
+                            AppendLogRaw($"玩法详情: {playlistDetail?.NameHint ?? "N/A"}");
+                        }
+                        catch (Exception ex)
+                        {
+                            results.AppendLine($"✗ GetPlaylistAsync - 失败: {ex.Message}");
+                            AppendLogRaw($"玩法详情查询失败: {ex.Message}");
+                        }
+                    }
+                }
+
+                // Step 7: 获取战绩记录
+                AppendLogRaw(">>> Step 7: 获取战绩记录...");
+                var serviceRecord = await _client.GetUserServiceRecordAsync(gamerTag);
+                results.AppendLine($"✓ GetUserServiceRecordAsync - 比赛完成: {serviceRecord.MatchesCompleted}, 击杀: {serviceRecord.CoreStats.Kills}");
+                AppendLogRaw($"战绩记录: 比赛={serviceRecord.MatchesCompleted}");
+
+                // Step 8: 获取隐私设置
+                AppendLogRaw(">>> Step 8: 获取隐私设置...");
+                var privacy = await _client.GetMatchesPrivacyAsync(currentXuid);
+                results.AppendLine($"✓ GetMatchesPrivacyAsync - 匹配对战: {privacy.MatchmadeGames}, 其他对战: {privacy.OtherGames}");
+                AppendLogRaw($"隐私设置: {privacy.MatchmadeGames}");
+
+                // Step 9: 更新隐私设置
+                AppendLogRaw(">>> Step 9: 更新隐私设置...");
+                var newPrivacy = new MatchesPrivacy
+                {
+                    MatchmadeGames = Privacy.Show,
+                    OtherGames = Privacy.Show
+                };
+                var updatedPrivacy = await _client.UpdateMatchesPrivacyAsync(currentXuid, newPrivacy);
+                results.AppendLine($"✓ UpdateMatchesPrivacyAsync - 已更新");
+                AppendLogRaw($"隐私更新: 成功");
+
+                // Step 10: 获取封禁摘要
+                AppendLogRaw(">>> Step 10: 获取封禁摘要...");
+                var banSummary = await _client.GetBanSummaryAsync(new[] { currentXuid });
+                var banCount = banSummary.Results?.FirstOrDefault()?.Result?.BansInEffect?.Length ?? 0;
+                results.AppendLine($"✓ GetBanSummaryAsync - 生效封禁: {banCount}");
+                AppendLogRaw($"封禁摘要: {banCount} 个生效封禁");
+
+                // Step 11: 获取勋章元数据
+                AppendLogRaw(">>> Step 11: 获取勋章元数据...");
+                var medals = await _client.GetMedalsMetadataFileAsync();
+                results.AppendLine($"✓ GetMedalsMetadataFileAsync - 勋章总数: {medals.Medals.Length}");
+                AppendLogRaw($"勋章元数据: {medals.Medals.Length} 个勋章");
+
+                // Step 12: 获取赛季日历
+                AppendLogRaw(">>> Step 12: 获取赛季日历...");
+                var season = await _client.GetSeasonCalendarAsync();
+                results.AppendLine($"✓ GetSeasonCalendarAsync - 赛季数: {season.Seasons.Length}, 活动数: {season.Events.Length}");
+                AppendLogRaw($"赛季日历: {season.Seasons.Length} 个赛季");
+
+                // Step 13: 获取 CSR 赛季日历
+                AppendLogRaw(">>> Step 13: 获取 CSR 赛季日历...");
+                var csrSeason = await _client.GetCsrSeasonCalendarAsync();
+                results.AppendLine($"✓ GetCsrSeasonCalendarAsync - CSR 赛季数: {csrSeason.Seasons.Length}");
+                AppendLogRaw($"CSR 赛季: {csrSeason.Seasons.Length} 个赛季");
+
+                // 写入所有结果到日志
+                AppendLogRaw("=== 所有接口测试结果 ===");
+                AppendLogRaw(results.ToString());
+
+                TestAllStatusText.Text = $"完成！成功调用 {_apiCallCount} 个接口";
+            }
+            catch (Exception ex)
+            {
+                AppendLogRaw($"执行过程中出错: {ex.Message}");
+                TestAllStatusText.Text = $"执行出错: {ex.Message}";
+            }
+            finally
+            {
+                LoadingRing.IsActive = false;
+                TestAllApiButton.IsEnabled = true;
+            }
+        }
+
+        private int _apiCallCount = 0;
+
+        private void AppendLogRaw(string message)
+        {
+            _apiCallCount++;
+            _ = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                ApiLogTextBox.Text += message + Environment.NewLine + Environment.NewLine;
+                ApiLogTextBox.SelectionStart = ApiLogTextBox.Text.Length;
+                ApiLogTextBox.SelectionLength = 0;
+            });
+        }
+
         private async void SetTokenButton_Click(object sender, RoutedEventArgs e)
         {
             var token = TokenTextBox.Text?.Trim();
@@ -786,8 +977,9 @@ namespace SpartanHub
                 // 自动填充用户信息（使用 XUID 查询玩家信息获取 Gamertag）
                 try
                 {
-                    var userInfo = await _client.GetUserAsync(currentUser.xuid);
-                    GamerTagTextBox.Text = userInfo.Gamertag;
+                    var userInfoArr = await _client.GetUsersAsync(new[] { currentUser.xuid });
+                    var userInfo = userInfoArr.FirstOrDefault();
+                    GamerTagTextBox.Text = userInfo?.Gamertag ?? currentUser.xuid;
                 }
                 catch
                 {
