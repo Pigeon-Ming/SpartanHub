@@ -1,90 +1,97 @@
 using System;
 using System.Threading.Tasks;
 using SpartanHub.Core.Authentication;
-using SpartanHub.Core.Clients;
 using SpartanHub.Core.Models;
-using Windows.Security.Credentials;
 
 namespace SpartanHub.Service
 {
-    public class UserSessionService : ISpartanTokenProvider
+    public class UserSessionService : ISpartanTokenProvider, IPlayerContextProvider
     {
         private static readonly Lazy<UserSessionService> _instance = new Lazy<UserSessionService>(() => new UserSessionService());
         
         public static UserSessionService Instance => _instance.Value;
 
-        private readonly HaloAuthenticationClient _authClient;
-        private readonly HaloInfiniteClient _haloClient;
+        private readonly IPersistedSpartanSessionStore _sessionStore;
+        private readonly IHaloWaypointLoginService _loginService;
         
-        private CachedUserToken _cachedToken;
+        private SpartanAuthSession _session;
 
-        public string SpartanToken => _cachedToken?.Token;
+        public string SpartanToken => _session?.SpartanToken;
+        public string PlayerXuid => _session?.Xuid;
         public UserInfo CurrentUser { get; private set; }
         public bool IsLoggedIn => !string.IsNullOrEmpty(SpartanToken);
 
         private UserSessionService()
         {
-            _authClient = new HaloAuthenticationClient(new XboxAuthenticationClient(GetOauthTokenAsync));
-            _haloClient = new HaloInfiniteClient(this);
+            _sessionStore = new PasswordVaultSpartanSessionStore();
+            _loginService = new HaloWaypointLoginService(new UwpWebViewCookieReader(), _sessionStore);
             
-            LoadTokenFromVault();
+            LoadSessionFromVault();
         }
 
         public async Task<string> GetSpartanTokenAsync()
         {
-            if (_cachedToken == null || _cachedToken.IsExpired)
+            if (_session == null || !_session.HasToken)
             {
-                await RefreshTokenAsync();
+                throw new InvalidOperationException("当前没有可用的 Spartan Token，请先登录 HaloWaypoint。");
             }
+
+            if (_session.IsExpired)
+            {
+                var refreshed = await RefreshTokenAsync().ConfigureAwait(false);
+                if (!refreshed)
+                {
+                    throw new InvalidOperationException("Spartan Token 已过期，请重新登录 HaloWaypoint。");
+                }
+            }
+
             return SpartanToken;
         }
 
         public async Task ClearSpartanTokenAsync()
         {
-            await _authClient.ClearSpartanTokenAsync();
-            _cachedToken = null;
+            await LogoutAsync().ConfigureAwait(false);
         }
 
-        public async Task<bool> LoginAsync(string oauthToken)
+        public async Task<bool> LoginAsync(string spartanToken)
         {
-            try
+            return await SignInWithSpartanTokenAsync(spartanToken).ConfigureAwait(false);
+        }
+
+        public async Task<bool> SignInWithSpartanTokenAsync(string spartanToken)
+        {
+            var result = await _loginService.SignInWithSpartanTokenAsync(spartanToken).ConfigureAwait(false);
+            if (!result.IsSuccess)
             {
-                await _authClient.ClearSpartanTokenAsync();
-                
-                var spartanToken = await _authClient.GetSpartanTokenAsync();
-                
-                _cachedToken = new CachedUserToken
-                {
-                    Token = spartanToken,
-                    ExpiresAt = DateTimeOffset.UtcNow.AddHours(24)
-                };
-                
-                SaveTokenToVault(spartanToken);
-                
-                // 获取当前用户信息并转换为 UserInfo
-                var currentUser = await _haloClient.GetCurrentUserAsync();
-                CurrentUser = new UserInfo
-                {
-                    Xuid = currentUser.xuid,
-                    Gamertag = null, // GetCurrentUserAsync 不返回 Gamertag
-                    Gamerpic = null
-                };
-                
-                return true;
-            }
-            catch (Exception)
-            {
-                _cachedToken = null;
-                CurrentUser = null;
+                ClearInMemorySession();
                 return false;
             }
+
+            ApplySession(result.Session);
+            return true;
+        }
+
+        public async Task<LoginResult> CompleteHaloWaypointLoginAsync()
+        {
+            var result = await _loginService.CompleteLoginAsync().ConfigureAwait(false);
+            if (result.IsSuccess)
+            {
+                ApplySession(result.Session);
+            }
+
+            return result;
         }
 
         public void Logout()
         {
-            _cachedToken = null;
-            CurrentUser = null;
-            ClearTokenFromVault();
+            ClearInMemorySession();
+            _ = _loginService.LogoutAsync();
+        }
+
+        public async Task LogoutAsync()
+        {
+            ClearInMemorySession();
+            await _loginService.LogoutAsync().ConfigureAwait(false);
         }
 
         public async Task<bool> RefreshTokenAsync()
@@ -96,17 +103,13 @@ namespace SpartanHub.Service
 
             try
             {
-                await _authClient.ClearSpartanTokenAsync();
-                var newToken = await _authClient.GetSpartanTokenAsync();
-                
-                _cachedToken = new CachedUserToken
+                var result = await _loginService.SignInWithSpartanTokenAsync(SpartanToken).ConfigureAwait(false);
+                if (!result.IsSuccess)
                 {
-                    Token = newToken,
-                    ExpiresAt = DateTimeOffset.UtcNow.AddHours(24)
-                };
-                
-                SaveTokenToVault(newToken);
-                
+                    return false;
+                }
+
+                ApplySession(result.Session);
                 return true;
             }
             catch (Exception)
@@ -115,68 +118,52 @@ namespace SpartanHub.Service
             }
         }
 
-        private async Task<string> GetOauthTokenAsync()
-        {
-            var vault = new PasswordVault();
-            try
-            {
-                var credential = vault.Retrieve("SpartanHub_OAuth", "OAuthToken");
-                return credential.Password;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        private void SaveTokenToVault(string token)
+        private void LoadSessionFromVault()
         {
             try
             {
-                var vault = new PasswordVault();
-                vault.Add(new PasswordCredential("SpartanHub", "SpartanToken", token));
-            }
-            catch
-            {
-            }
-        }
-
-        private void LoadTokenFromVault()
-        {
-            try
-            {
-                var vault = new PasswordVault();
-                var credential = vault.Retrieve("SpartanHub", "SpartanToken");
-                _cachedToken = new CachedUserToken
+                var session = _sessionStore.LoadAsync().GetAwaiter().GetResult();
+                if (session != null && session.HasToken && !session.IsExpired)
                 {
-                    Token = credential.Password,
-                    ExpiresAt = DateTimeOffset.UtcNow.AddHours(24)
+                    ApplySession(session);
+                }
+            }
+            catch
+            {
+                ClearInMemorySession();
+            }
+        }
+
+        private void ApplySession(SpartanAuthSession session)
+        {
+            _session = session;
+            CurrentUser = session == null
+                ? null
+                : new UserInfo
+                {
+                    Xuid = session.Xuid,
+                    Gamertag = session.Gamertag,
+                    Gamerpic = null
                 };
-            }
-            catch
-            {
-                _cachedToken = null;
-            }
         }
 
-        private void ClearTokenFromVault()
+        private void ClearInMemorySession()
         {
-            try
-            {
-                var vault = new PasswordVault();
-                var credential = vault.Retrieve("SpartanHub", "SpartanToken");
-                vault.Remove(credential);
-            }
-            catch
-            {
-            }
+            _session = null;
+            CurrentUser = null;
         }
 
-        private class CachedUserToken
+        public async Task<bool> LoadPersistedSessionAsync()
         {
-            public string Token { get; set; }
-            public DateTimeOffset ExpiresAt { get; set; }
-            public bool IsExpired => DateTimeOffset.UtcNow > ExpiresAt;
+            var session = await _sessionStore.LoadAsync().ConfigureAwait(false);
+            if (session == null || !session.HasToken || session.IsExpired)
+            {
+                ClearInMemorySession();
+                return false;
+            }
+
+            ApplySession(session);
+            return true;
         }
     }
 }

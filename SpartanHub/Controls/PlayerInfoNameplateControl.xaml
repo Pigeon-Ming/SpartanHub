@@ -2,30 +2,94 @@
     x:Class="SpartanHub.Controls.PlayerInfoNameplateControl"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:SpartanHub.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:SpartanHub.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
     d:DesignHeight="69"
-    d:DesignWidth="360">
+    d:DesignWidth="360"
+    mc:Ignorable="d">
 
-    <Grid Height="67.323" Width="360">
+    <Grid Width="360" Height="67.323">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="69"/>
-            <ColumnDefinition/>
-            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="69" />
+            <ColumnDefinition />
+            <ColumnDefinition Width="112" />
         </Grid.ColumnDefinitions>
-        <Image Grid.ColumnSpan="3" Source="/Assets/NameplateBackground.png"/>
-        <Grid>
-            <Image/>
+        <Image
+            Grid.ColumnSpan="3"
+            Source="/Assets/NameplateBackground.png"
+            Stretch="Fill" />
+        <Grid
+            x:Name="AvatarHost"
+            Width="52"
+            Height="52"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+            <Ellipse
+                Stroke="#99FFFFFF"
+                StrokeThickness="1.5">
+                <Ellipse.Fill>
+                    <ImageBrush x:Name="AvatarBrush" Stretch="UniformToFill" />
+                </Ellipse.Fill>
+            </Ellipse>
+            <TextBlock
+                x:Name="AvatarInitialsText"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="20"
+                FontWeight="SemiBold"
+                Foreground="#CCFFFFFF"
+                Text="?" />
+            <ProgressRing
+                x:Name="LoadingRing"
+                Width="28"
+                Height="28"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsActive="False"
+                Visibility="Collapsed" />
         </Grid>
-        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-            <TextBlock Text="Ming er zb" FontSize="20" FontWeight="Medium"/>
-            <TextBlock Text="JZTE" FontWeight="SemiBold" FontStyle="Italic"/>
+        <StackPanel
+            Grid.Column="1"
+            MinWidth="0"
+            VerticalAlignment="Center">
+            <TextBlock
+                x:Name="GamerTagTextBlock"
+                FontSize="20"
+                FontWeight="Medium"
+                Text="玩家资料"
+                TextTrimming="CharacterEllipsis" />
+            <TextBlock
+                x:Name="IdentifierTextBlock"
+                FontStyle="Italic"
+                FontWeight="SemiBold"
+                Foreground="#CCFFFFFF"
+                Text="传入 GamerTag 或 XUID"
+                TextTrimming="CharacterEllipsis" />
         </StackPanel>
-        <Grid Grid.Column="2" VerticalAlignment="Center">
-            <TextBlock Text="铂金，Ⅱ级"/>
-            <TextBlock Text="+1000XP进入下一等级" Visibility="Collapsed"/>
+        <Grid
+            Grid.Column="2"
+            Margin="8,0,12,0"
+            VerticalAlignment="Center">
+            <StackPanel HorizontalAlignment="Right">
+                <TextBlock
+                    x:Name="StatusTextBlock"
+                    HorizontalAlignment="Right"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    Text="未加载"
+                    TextAlignment="Right"
+                    TextTrimming="CharacterEllipsis" />
+                <TextBlock
+                    x:Name="StatusDetailTextBlock"
+                    HorizontalAlignment="Right"
+                    FontSize="11"
+                    Foreground="#B3FFFFFF"
+                    Text=""
+                    TextAlignment="Right"
+                    TextTrimming="CharacterEllipsis"
+                    Visibility="Collapsed" />
+            </StackPanel>
         </Grid>
     </Grid>
 </UserControl>

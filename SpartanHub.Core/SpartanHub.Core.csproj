@@ -122,17 +122,22 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ApiLogEntry.cs" />
+    <Compile Include="Authentication\IPersistedSpartanSessionStore.cs" />
+    <Compile Include="Authentication\IPlayerContextProvider.cs" />
     <Compile Include="Authentication\StaticSpartanTokenProvider.cs" />
     <Compile Include="Authentication\HaloAuthenticationClient.cs" />
     <Compile Include="Authentication\InMemoryTokenPersister.cs" />
     <Compile Include="Authentication\ISpartanTokenProvider.cs" />
     <Compile Include="Authentication\ITokenPersister.cs" />
     <Compile Include="Authentication\IXstsTokenProvider.cs" />
+    <Compile Include="Authentication\LoginResult.cs" />
+    <Compile Include="Authentication\SpartanAuthSession.cs" />
     <Compile Include="Authentication\XboxAuthenticationClient.cs" />
     <Compile Include="Clients\HaloInfiniteClient.cs" />
     <Compile Include="Endpoints\HaloCoreEndpoints.cs" />
     <Compile Include="Exceptions\HaloApiException.cs" />
     <Compile Include="GlobalConstants.cs" />
+    <Compile Include="Models\ActiveFlightConfiguration.cs" />
     <Compile Include="Models\ApiFormattedDate.cs" />
     <Compile Include="Models\AssetDetail.cs" />
     <Compile Include="Models\BanMessage.cs" />
@@ -145,6 +150,8 @@
     <Compile Include="Models\MatchesPrivacy.cs" />
     <Compile Include="Models\MedalsMetadataFile.cs" />
     <Compile Include="Models\PlayerMatchHistory.cs" />
+    <Compile Include="Models\PlayerCustomization.cs" />
+    <Compile Include="Models\PlayerOperationRewardTracks.cs" />
     <Compile Include="Models\Playlist.cs" />
     <Compile Include="Models\PlaylistCsr.cs" />
     <Compile Include="Models\ProgressionFile.cs" />

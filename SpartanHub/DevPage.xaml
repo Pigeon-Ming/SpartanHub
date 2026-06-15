@@ -231,6 +231,70 @@
                 <TextBlock
                     Margin="0,10,0,0"
                     FontSize="18"
+                    Text="玩家自定义外观" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBox
+                        x:Name="CustomizationXuidTextBox"
+                        MaxWidth="300"
+                        Header="输入XUID"
+                        PlaceholderText="玩家XUID" />
+                    <Button
+                        x:Name="CustomizationButton"
+                        VerticalAlignment="Bottom"
+                        Click="CustomizationButton_Click"
+                        Content="查询外观" />
+                </StackPanel>
+
+                <Border
+                    x:Name="CustomizationResultBorder"
+                    Padding="15"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    Visibility="Collapsed">
+                    <StackPanel Spacing="5">
+                        <TextBlock
+                            x:Name="CustomizationResult"
+                            FontFamily="Consolas"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="18"
+                    Text="通行证进度" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBox
+                        x:Name="OperationRewardTracksXuidTextBox"
+                        MaxWidth="300"
+                        Header="输入XUID"
+                        PlaceholderText="例如: 2535452945459405" />
+                    <Button
+                        x:Name="OperationRewardTracksButton"
+                        VerticalAlignment="Bottom"
+                        Click="OperationRewardTracksButton_Click"
+                        Content="查询通行证进度" />
+                </StackPanel>
+
+                <Border
+                    x:Name="OperationRewardTracksResultBorder"
+                    Padding="15"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    Visibility="Collapsed">
+                    <StackPanel Spacing="5">
+                        <TextBlock
+                            x:Name="OperationRewardTracksResult"
+                            FontFamily="Consolas"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock
+                    Margin="0,10,0,0"
+                    FontSize="18"
                     Text="对战隐私设置" />
 
                 <StackPanel Orientation="Horizontal" Spacing="10">
@@ -380,9 +444,9 @@
                 <StackPanel Orientation="Horizontal" Spacing="10">
                     <Button
                         x:Name="TestAllApiButton"
+                        Padding="20,10"
                         Click="TestAllApiButton_Click"
-                        Content="一键请求所有 API"
-                        Padding="20,10" />
+                        Content="一键请求所有 API" />
                     <TextBlock
                         x:Name="TestAllStatusText"
                         VerticalAlignment="Center"

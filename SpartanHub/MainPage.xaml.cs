@@ -16,6 +16,11 @@ namespace SpartanHub
             this.Frame.Navigate(typeof(DevPage));
         }
 
+        private void NavigateToAuthPage_Click(object sender, RoutedEventArgs e)
+        {
+            this.Frame.Navigate(typeof(AuthPage));
+        }
+
         private void NavigateToControlTestPage_Click(object sender, RoutedEventArgs e)
         {
             this.Frame.Navigate(typeof(ControlTestPage));

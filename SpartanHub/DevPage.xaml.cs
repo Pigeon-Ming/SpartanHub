@@ -41,6 +41,10 @@ namespace SpartanHub
             {
                 TokenTextBox.Text = token;
                 InitializeClient(token);
+                if (!string.IsNullOrWhiteSpace(_userSessionService.CurrentUser?.Xuid))
+                {
+                    await _client.EnsureActiveFlightConfigurationAsync(_userSessionService.CurrentUser.Xuid);
+                }
                 StatusText.Text = "已使用缓存的 Token 初始化";
 
                 // 如果已有用户信息，显示出来
@@ -160,6 +164,8 @@ namespace SpartanHub
                 MatchHistoryXuidTextBox.Text = userInfo.Xuid;
                 CsrXuidTextBox.Text = userInfo.Xuid;
                 ServiceRecordTextBox.Text = gamerTag;
+                CustomizationXuidTextBox.Text = userInfo.Xuid;
+                OperationRewardTracksXuidTextBox.Text = userInfo.Xuid;
                 PrivacyXuidTextBox.Text = userInfo.Xuid;
                 BanXuidTextBox.Text = userInfo.Xuid;
 
@@ -467,6 +473,157 @@ namespace SpartanHub
             {
                 LoadingRing.IsActive = false;
                 ServiceRecordButton.IsEnabled = true;
+            }
+        }
+
+        private async void CustomizationButton_Click(object sender, RoutedEventArgs e)
+        {
+            var xuid = CustomizationXuidTextBox.Text?.Trim();
+
+            if (string.IsNullOrEmpty(xuid))
+            {
+                StatusText.Text = "请输入 XUID";
+                return;
+            }
+
+            if (!CheckClient()) return;
+
+            try
+            {
+                LoadingRing.IsActive = true;
+                CustomizationButton.IsEnabled = false;
+                StatusText.Text = $"正在查询玩家自定义外观...";
+                CustomizationResultBorder.Visibility = Visibility.Collapsed;
+
+                var customization = await _client.GetPlayerCustomizationAsync(xuid);
+                var equippedArmorCore = customization.ArmorCores?.ArmorCores?.FirstOrDefault(core => core.IsEquipped == true)
+                    ?? customization.ArmorCores?.ArmorCores?.FirstOrDefault();
+                var equippedArmorTheme = equippedArmorCore?.Themes?.FirstOrDefault(theme => theme.IsEquipped)
+                    ?? equippedArmorCore?.Themes?.FirstOrDefault();
+                var equippedAiCore = customization.AiCores?.AiCores?.FirstOrDefault(core => core.IsEquipped == true)
+                    ?? customization.AiCores?.AiCores?.FirstOrDefault();
+                var equippedAiTheme = equippedAiCore?.Themes?.FirstOrDefault(theme => theme.IsEquipped)
+                    ?? equippedAiCore?.Themes?.FirstOrDefault();
+
+                var sb = new StringBuilder();
+                sb.AppendLine("--- 玩家自定义外观 ---");
+                sb.AppendLine($"ServiceTag：{customization.Appearance?.ServiceTag ?? "N/A"}");
+                sb.AppendLine($"动作姿势：{customization.Appearance?.ActionPosePath ?? "N/A"}");
+                sb.AppendLine($"背景图：{customization.Appearance?.BackdropImagePath ?? "N/A"}");
+                sb.AppendLine($"徽章：{customization.Appearance?.Emblem?.EmblemPath ?? "N/A"}");
+                sb.AppendLine();
+                sb.AppendLine("--- Spartan Body ---");
+                sb.AppendLine($"体型：{customization.SpartanBody?.BodyType ?? "N/A"}");
+                sb.AppendLine($"语音：{customization.SpartanBody?.VoicePath ?? "N/A"}");
+                sb.AppendLine($"左臂：{customization.SpartanBody?.LeftArm ?? "N/A"} | 右臂：{customization.SpartanBody?.RightArm ?? "N/A"}");
+                sb.AppendLine($"左腿：{customization.SpartanBody?.LeftLeg ?? "N/A"} | 右腿：{customization.SpartanBody?.RightLeg ?? "N/A"}");
+                sb.AppendLine();
+                sb.AppendLine("--- 装甲核心 ---");
+                sb.AppendLine($"CoreId：{equippedArmorCore?.CoreId ?? "N/A"}");
+                sb.AppendLine($"CoreType：{equippedArmorCore?.CoreType ?? "N/A"}");
+                sb.AppendLine($"涂装：{equippedArmorTheme?.CoatingPath ?? "N/A"}");
+                sb.AppendLine($"头盔：{equippedArmorTheme?.HelmetPath ?? "N/A"}");
+                sb.AppendLine($"护目镜：{equippedArmorTheme?.VisorPath ?? "N/A"}");
+                sb.AppendLine();
+                sb.AppendLine("--- AI 核心 ---");
+                sb.AppendLine($"CoreId：{equippedAiCore?.CoreId ?? "N/A"}");
+                sb.AppendLine($"模型：{equippedAiTheme?.ModelPath ?? "N/A"}");
+                sb.AppendLine($"颜色：{equippedAiTheme?.ColorPath ?? "N/A"}");
+                sb.AppendLine();
+                sb.AppendLine("--- 数量 ---");
+                sb.AppendLine($"装甲核心：{customization.ArmorCores?.ArmorCores?.Length ?? 0}");
+                sb.AppendLine($"武器核心：{customization.WeaponCores?.WeaponCores?.Length ?? 0}");
+                sb.AppendLine($"AI 核心：{customization.AiCores?.AiCores?.Length ?? 0}");
+                sb.AppendLine($"载具核心：{customization.VehicleCores?.VehicleCores?.Length ?? 0}");
+
+                CustomizationResult.Text = sb.ToString();
+                CustomizationResultBorder.Visibility = Visibility.Visible;
+                StatusText.Text = "成功获取玩家自定义外观";
+            }
+            catch (Exception ex)
+            {
+                StatusText.Text = $"查询失败：{ex.Message}";
+                CustomizationResultBorder.Visibility = Visibility.Collapsed;
+            }
+            finally
+            {
+                LoadingRing.IsActive = false;
+                CustomizationButton.IsEnabled = true;
+            }
+        }
+
+        private async void OperationRewardTracksButton_Click(object sender, RoutedEventArgs e)
+        {
+            var xuid = OperationRewardTracksXuidTextBox.Text?.Trim();
+
+            if (string.IsNullOrEmpty(xuid))
+            {
+                StatusText.Text = "请输入 XUID";
+                return;
+            }
+
+            if (!CheckClient()) return;
+
+            try
+            {
+                LoadingRing.IsActive = true;
+                OperationRewardTracksButton.IsEnabled = false;
+                StatusText.Text = $"正在查询通行证进度...";
+                OperationRewardTracksResultBorder.Visibility = Visibility.Collapsed;
+
+                var rewardTracks = await _client.GetPlayerOperationRewardTracksAsync(xuid);
+                var tracks = rewardTracks.OperationRewardTracks ?? Array.Empty<OperationRewardTrack>();
+                var activeTrack = tracks.FirstOrDefault(track => track.RewardTrackPath == rewardTracks.ActiveOperationRewardTrackPath);
+                var progressedTracks = tracks
+                    .Where(track => (track.CurrentProgress?.Rank ?? 0) > 0 || (track.CurrentProgress?.PartialProgress ?? 0) > 0)
+                    .Take(10)
+                    .ToArray();
+
+                var sb = new StringBuilder();
+                sb.AppendLine("--- 通行证进度 ---");
+                sb.AppendLine($"当前激活轨道：{rewardTracks.ActiveOperationRewardTrackPath ?? "N/A"}");
+                sb.AppendLine($"轨道数量：{tracks.Length}");
+                sb.AppendLine($"已拥有轨道：{tracks.Count(track => track.IsOwned)}");
+                sb.AppendLine($"已满级轨道：{tracks.Count(track => track.CurrentProgress?.HasReachedMaxRank == true)}");
+                sb.AppendLine();
+
+                if (activeTrack != null)
+                {
+                    sb.AppendLine("--- 当前激活轨道进度 ---");
+                    sb.AppendLine($"Rank：{activeTrack.CurrentProgress?.Rank ?? 0}");
+                    sb.AppendLine($"当前等级进度：{activeTrack.CurrentProgress?.PartialProgress ?? 0}");
+                    sb.AppendLine($"是否拥有：{activeTrack.IsOwned}");
+                    sb.AppendLine($"是否满级：{activeTrack.CurrentProgress?.HasReachedMaxRank == true}");
+                    sb.AppendLine();
+                }
+
+                sb.AppendLine("--- 有进度的轨道 (前 10 条) ---");
+                if (progressedTracks.Length == 0)
+                {
+                    sb.AppendLine("暂无非零进度轨道");
+                }
+                else
+                {
+                    foreach (var track in progressedTracks)
+                    {
+                        sb.AppendLine(track.RewardTrackPath);
+                        sb.AppendLine($"  Rank：{track.CurrentProgress?.Rank ?? 0}, 进度：{track.CurrentProgress?.PartialProgress ?? 0}, 拥有：{track.IsOwned}");
+                    }
+                }
+
+                OperationRewardTracksResult.Text = sb.ToString();
+                OperationRewardTracksResultBorder.Visibility = Visibility.Visible;
+                StatusText.Text = "成功获取通行证进度";
+            }
+            catch (Exception ex)
+            {
+                StatusText.Text = $"查询失败：{ex.Message}";
+                OperationRewardTracksResultBorder.Visibility = Visibility.Collapsed;
+            }
+            finally
+            {
+                LoadingRing.IsActive = false;
+                OperationRewardTracksButton.IsEnabled = true;
             }
         }
 
@@ -878,14 +1035,27 @@ namespace SpartanHub
                 results.AppendLine($"✓ GetUserServiceRecordAsync - 比赛完成: {serviceRecord.MatchesCompleted}, 击杀: {serviceRecord.CoreStats.Kills}");
                 AppendLogRaw($"战绩记录: 比赛={serviceRecord.MatchesCompleted}");
 
-                // Step 8: 获取隐私设置
-                AppendLogRaw(">>> Step 8: 获取隐私设置...");
+                // Step 8: 获取玩家自定义外观
+                AppendLogRaw(">>> Step 8: 获取玩家自定义外观...");
+                var customization = await _client.GetPlayerCustomizationAsync(currentXuid);
+                results.AppendLine($"✓ GetPlayerCustomizationAsync - ServiceTag: {customization.Appearance?.ServiceTag ?? "N/A"}");
+                AppendLogRaw($"玩家自定义外观: ServiceTag={customization.Appearance?.ServiceTag ?? "N/A"}");
+
+                // Step 8.5: 获取玩家通行证进度
+                AppendLogRaw(">>> Step 8.5: 获取玩家通行证进度...");
+                var operationRewardTracks = await _client.GetPlayerOperationRewardTracksAsync(currentXuid);
+                var operationTrackCount = operationRewardTracks.OperationRewardTracks?.Length ?? 0;
+                results.AppendLine($"✓ GetPlayerOperationRewardTracksAsync - 当前轨道: {operationRewardTracks.ActiveOperationRewardTrackPath}, 轨道数: {operationTrackCount}");
+                AppendLogRaw($"通行证进度: {operationTrackCount} 条轨道");
+
+                // Step 9: 获取隐私设置
+                AppendLogRaw(">>> Step 9: 获取隐私设置...");
                 var privacy = await _client.GetMatchesPrivacyAsync(currentXuid);
                 results.AppendLine($"✓ GetMatchesPrivacyAsync - 匹配对战: {privacy.MatchmadeGames}, 其他对战: {privacy.OtherGames}");
                 AppendLogRaw($"隐私设置: {privacy.MatchmadeGames}");
 
-                // Step 9: 更新隐私设置
-                AppendLogRaw(">>> Step 9: 更新隐私设置...");
+                // Step 10: 更新隐私设置
+                AppendLogRaw(">>> Step 10: 更新隐私设置...");
                 var newPrivacy = new MatchesPrivacy
                 {
                     MatchmadeGames = Privacy.Show,
@@ -895,27 +1065,27 @@ namespace SpartanHub
                 results.AppendLine($"✓ UpdateMatchesPrivacyAsync - 已更新");
                 AppendLogRaw($"隐私更新: 成功");
 
-                // Step 10: 获取封禁摘要
-                AppendLogRaw(">>> Step 10: 获取封禁摘要...");
+                // Step 11: 获取封禁摘要
+                AppendLogRaw(">>> Step 11: 获取封禁摘要...");
                 var banSummary = await _client.GetBanSummaryAsync(new[] { currentXuid });
                 var banCount = banSummary.Results?.FirstOrDefault()?.Result?.BansInEffect?.Length ?? 0;
                 results.AppendLine($"✓ GetBanSummaryAsync - 生效封禁: {banCount}");
                 AppendLogRaw($"封禁摘要: {banCount} 个生效封禁");
 
-                // Step 11: 获取勋章元数据
-                AppendLogRaw(">>> Step 11: 获取勋章元数据...");
+                // Step 12: 获取勋章元数据
+                AppendLogRaw(">>> Step 12: 获取勋章元数据...");
                 var medals = await _client.GetMedalsMetadataFileAsync();
                 results.AppendLine($"✓ GetMedalsMetadataFileAsync - 勋章总数: {medals.Medals.Length}");
                 AppendLogRaw($"勋章元数据: {medals.Medals.Length} 个勋章");
 
-                // Step 12: 获取赛季日历
-                AppendLogRaw(">>> Step 12: 获取赛季日历...");
+                // Step 13: 获取赛季日历
+                AppendLogRaw(">>> Step 13: 获取赛季日历...");
                 var season = await _client.GetSeasonCalendarAsync();
                 results.AppendLine($"✓ GetSeasonCalendarAsync - 赛季数: {season.Seasons.Length}, 活动数: {season.Events.Length}");
                 AppendLogRaw($"赛季日历: {season.Seasons.Length} 个赛季");
 
-                // Step 13: 获取 CSR 赛季日历
-                AppendLogRaw(">>> Step 13: 获取 CSR 赛季日历...");
+                // Step 14: 获取 CSR 赛季日历
+                AppendLogRaw(">>> Step 14: 获取 CSR 赛季日历...");
                 var csrSeason = await _client.GetCsrSeasonCalendarAsync();
                 results.AppendLine($"✓ GetCsrSeasonCalendarAsync - CSR 赛季数: {csrSeason.Seasons.Length}");
                 AppendLogRaw($"CSR 赛季: {csrSeason.Seasons.Length} 个赛季");
@@ -968,6 +1138,13 @@ namespace SpartanHub
                 
                 // 验证 Token 并获取当前用户信息
                 var currentUser = await _client.GetCurrentUserAsync();
+                await _client.EnsureActiveFlightConfigurationAsync(currentUser.xuid);
+                MatchHistoryXuidTextBox.Text = currentUser.xuid;
+                CsrXuidTextBox.Text = currentUser.xuid;
+                CustomizationXuidTextBox.Text = currentUser.xuid;
+                OperationRewardTracksXuidTextBox.Text = currentUser.xuid;
+                PrivacyXuidTextBox.Text = currentUser.xuid;
+                BanXuidTextBox.Text = currentUser.xuid;
                 
                 // 保存到 UserSessionService（会自动持久化到 PasswordVault）
                 await _userSessionService.LoginAsync(token);

@@ -8,8 +8,10 @@ namespace SpartanHub.Core.Endpoints
         public static string GameCmsOrigin => "gamecms-hacs";
         public static string DiscoveryOrigin => "discovery-infiniteugc";
         public static string CommsOrigin => "comms";
+        public static string EconomyOrigin => "economy";
         public static string BanProcessorOrigin => "banprocessor";
         public static string SettingsOrigin => "settings";
+        public static string ServiceDomainWithoutPort => "svc.halowaypoint.com";
         public static string ServiceDomain => "svc.halowaypoint.com:443";
     }
 }

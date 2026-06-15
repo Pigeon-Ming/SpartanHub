@@ -11,21 +11,25 @@
     <UserControl.Resources>
         <ResourceDictionary>
             <Style TargetType="TextBlock">
-                <Setter Property="FontSize" Value="18"/>
+                <Setter Property="FontSize" Value="16" />
             </Style>
         </ResourceDictionary>
     </UserControl.Resources>
-    <Grid Padding="8">
+    <Grid
+        MinWidth="160"
+        MinHeight="90"
+        Padding="8">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
             <RowDefinition />
+
         </Grid.RowDefinitions>
         <TextBlock
             Name="LabelText"
             Margin="0,0,0,4"
-            FontSize="16"
-            Foreground="{ThemeResource SystemControlDescriptionTextForegroundBrush}"
+            FontSize="18"
             FontWeight="Medium"
+            Foreground="{ThemeResource SystemControlDescriptionTextForegroundBrush}"
             Text="{x:Bind Label, Mode=OneWay}"
             TextWrapping="Wrap" />
         <ContentPresenter Grid.Row="1" Content="{x:Bind Body, Mode=OneWay}" />

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using SpartanHub.Core.Authentication;
@@ -15,7 +16,12 @@ namespace SpartanHub.Core.Clients
 {
     public class HaloInfiniteClient
     {
+        private static readonly SemaphoreSlim FlightConfigurationLock = new SemaphoreSlim(1, 1);
+        private static string _flightConfigurationId;
+        private static string _flightConfigurationXuid;
+
         private readonly ISpartanTokenProvider _spartanTokenProvider;
+        private readonly IPlayerContextProvider _playerContextProvider;
         private readonly HttpClient _httpClient;
         private readonly JsonSerializerSettings _jsonSettings;
 
@@ -24,6 +30,7 @@ namespace SpartanHub.Core.Clients
         public HaloInfiniteClient(ISpartanTokenProvider spartanTokenProvider, HttpClient httpClient = null)
         {
             _spartanTokenProvider = spartanTokenProvider ?? throw new ArgumentNullException(nameof(spartanTokenProvider));
+            _playerContextProvider = spartanTokenProvider as IPlayerContextProvider;
             _httpClient = httpClient ?? new HttpClient();
             _jsonSettings = new JsonSerializerSettings
             {
@@ -31,7 +38,7 @@ namespace SpartanHub.Core.Clients
             };
         }
 
-        private async Task<HttpResponseMessage> ExecuteRequestAsync(string url, HttpMethod method, string requestBody = null, bool skipAuth = false)
+        private async Task<HttpResponseMessage> ExecuteRequestAsync(string url, HttpMethod method, string requestBody = null, bool skipAuth = false, IDictionary<string, string> headers = null, bool skipClearance = false)
         {
             var logEntry = new ApiLogEntry
             {
@@ -45,10 +52,28 @@ namespace SpartanHub.Core.Clients
 
             try
             {
+                if (!skipAuth && !skipClearance)
+                {
+                    await EnsureActiveFlightConfigurationForRequestAsync(url).ConfigureAwait(false);
+                }
+
                 var request = new HttpRequestMessage(method, url);
 
                 request.Headers.Add("User-Agent", GlobalConstants.HaloPcUserAgent);
                 request.Headers.Add("Accept", "application/json");
+
+                if (headers != null)
+                {
+                    foreach (var header in headers)
+                    {
+                        request.Headers.Add(header.Key, header.Value);
+                    }
+                }
+
+                if (!skipClearance && !request.Headers.Contains("343-clearance") && !string.IsNullOrWhiteSpace(_flightConfigurationId))
+                {
+                    request.Headers.Add("343-clearance", _flightConfigurationId);
+                }
 
                 if (!skipAuth)
                 {
@@ -79,9 +104,9 @@ namespace SpartanHub.Core.Clients
             }
         }
 
-        private async Task<T> ExecuteJsonRequestAsync<T>(string url, HttpMethod method, string requestBody = null, bool skipAuth = false)
+        private async Task<T> ExecuteJsonRequestAsync<T>(string url, HttpMethod method, string requestBody = null, bool skipAuth = false, IDictionary<string, string> headers = null, bool skipClearance = false)
         {
-            var response = await ExecuteRequestAsync(url, method, requestBody, skipAuth).ConfigureAwait(false);
+            var response = await ExecuteRequestAsync(url, method, requestBody, skipAuth, headers, skipClearance).ConfigureAwait(false);
             var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             
             OnRequestLog?.Invoke(new ApiLogEntry
@@ -96,6 +121,78 @@ namespace SpartanHub.Core.Clients
             });
 
             return JsonConvert.DeserializeObject<T>(content, _jsonSettings);
+        }
+
+        public async Task<string> EnsureActiveFlightConfigurationAsync(string playerXuid)
+        {
+            var unwrappedXuid = XuidUtility.UnwrapPlayerId(playerXuid ?? string.Empty);
+            if (string.IsNullOrWhiteSpace(unwrappedXuid))
+            {
+                return _flightConfigurationId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_flightConfigurationId) && _flightConfigurationXuid == unwrappedXuid)
+            {
+                return _flightConfigurationId;
+            }
+
+            await FlightConfigurationLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(_flightConfigurationId) && _flightConfigurationXuid == unwrappedXuid)
+                {
+                    return _flightConfigurationId;
+                }
+
+                var wrappedXuid = XuidUtility.WrapPlayerId(unwrappedXuid);
+                var url = $"https://{HaloCoreEndpoints.SettingsOrigin}.{HaloCoreEndpoints.ServiceDomain}/oban/flight-configurations/titles/hi/audiences/retail/players/{wrappedXuid}/active";
+                var configuration = await ExecuteJsonRequestAsync<ActiveFlightConfiguration>(url, HttpMethod.Get, skipClearance: true).ConfigureAwait(false);
+
+                _flightConfigurationId = configuration?.FlightConfigurationId;
+                _flightConfigurationXuid = unwrappedXuid;
+                return _flightConfigurationId;
+            }
+            finally
+            {
+                FlightConfigurationLock.Release();
+            }
+        }
+
+        private async Task EnsureActiveFlightConfigurationForRequestAsync(string url)
+        {
+            var xuid = _playerContextProvider?.PlayerXuid;
+            if (string.IsNullOrWhiteSpace(xuid))
+            {
+                xuid = TryExtractXuidFromUrl(url);
+            }
+
+            var unwrappedXuid = XuidUtility.UnwrapPlayerId(xuid ?? string.Empty);
+            if (!string.IsNullOrWhiteSpace(_flightConfigurationId) &&
+                (string.IsNullOrWhiteSpace(unwrappedXuid) || _flightConfigurationXuid == unwrappedXuid))
+            {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(xuid))
+            {
+                await EnsureActiveFlightConfigurationAsync(xuid).ConfigureAwait(false);
+            }
+        }
+
+        private static string TryExtractXuidFromUrl(string url)
+        {
+            const string prefix = "xuid(";
+            var start = url.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+            if (start < 0)
+            {
+                return null;
+            }
+
+            start += prefix.Length;
+            var end = url.IndexOf(")", start, StringComparison.Ordinal);
+            return end > start
+                ? url.Substring(start, end - start)
+                : null;
         }
 
         public async Task<UserInfo> GetUserAsync(string gamerTag)
@@ -166,6 +263,27 @@ namespace SpartanHub.Core.Clients
         {
             var url = $"https://{HaloCoreEndpoints.CommsOrigin}.{HaloCoreEndpoints.ServiceDomain}/users/me";
             return await ExecuteJsonRequestAsync<CurrentUserInfo>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 获取玩家公开自定义外观信息，包括 ServiceTag。
+        /// </summary>
+        public async Task<PlayerCustomization> GetPlayerCustomizationAsync(string playerXuid, PlayerCustomizationView view = PlayerCustomizationView.Public)
+        {
+            var wrappedXuid = XuidUtility.WrapPlayerId(XuidUtility.UnwrapPlayerId(playerXuid));
+            var viewValue = view.ToString().ToLowerInvariant();
+            var url = $"https://{HaloCoreEndpoints.EconomyOrigin}.{HaloCoreEndpoints.ServiceDomainWithoutPort}/hi/players/{wrappedXuid}/customization?view={viewValue}";
+            return await ExecuteJsonRequestAsync<PlayerCustomization>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 获取玩家 Operation 通行证奖励轨道进度。
+        /// </summary>
+        public async Task<PlayerOperationRewardTracks> GetPlayerOperationRewardTracksAsync(string playerXuid)
+        {
+            var wrappedXuid = XuidUtility.WrapPlayerId(XuidUtility.UnwrapPlayerId(playerXuid));
+            var url = $"https://{HaloCoreEndpoints.EconomyOrigin}.{HaloCoreEndpoints.ServiceDomainWithoutPort}/hi/players/{wrappedXuid}/rewardtracks/operations?view=all";
+            return await ExecuteJsonRequestAsync<PlayerOperationRewardTracks>(url, HttpMethod.Get).ConfigureAwait(false);
         }
 
         public async Task<MatchStats> GetMatchStatsAsync(string matchId)
@@ -292,8 +410,15 @@ namespace SpartanHub.Core.Clients
 
             try
             {
+                await EnsureActiveFlightConfigurationForRequestAsync(request.RequestUri.ToString()).ConfigureAwait(false);
+
                 request.Headers.Add("User-Agent", GlobalConstants.HaloPcUserAgent);
                 request.Headers.Add("Accept", "application/json");
+
+                if (!request.Headers.Contains("343-clearance") && !string.IsNullOrWhiteSpace(_flightConfigurationId))
+                {
+                    request.Headers.Add("343-clearance", _flightConfigurationId);
+                }
 
                 var spartanToken = await _spartanTokenProvider.GetSpartanTokenAsync().ConfigureAwait(false);
                 request.Headers.Add("x-343-authorization-spartan", spartanToken);
