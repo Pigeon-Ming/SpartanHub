@@ -286,6 +286,34 @@ namespace SpartanHub.Core.Clients
             return await ExecuteJsonRequestAsync<PlayerOperationRewardTracks>(url, HttpMethod.Get).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// 获取 Operation 通行证奖励轨道定义。
+        /// </summary>
+        public async Task<RewardTrackDefinition> GetOperationRewardTrackDefinitionAsync(string trackIdOrPath)
+        {
+            var trackPath = NormalizeOperationRewardTrackPath(trackIdOrPath);
+            var url = $"https://{HaloCoreEndpoints.GameCmsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/Progression/file/{trackPath}";
+            return await ExecuteJsonRequestAsync<RewardTrackDefinition>(url, HttpMethod.Get).ConfigureAwait(false);
+        }
+
+        private static string NormalizeOperationRewardTrackPath(string trackIdOrPath)
+        {
+            if (string.IsNullOrWhiteSpace(trackIdOrPath))
+            {
+                return trackIdOrPath;
+            }
+
+            var value = trackIdOrPath.Trim().Replace("\\", "/");
+            if (value.IndexOf("/", StringComparison.Ordinal) >= 0)
+            {
+                return value.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+                    ? value
+                    : $"{value}.json";
+            }
+
+            return $"RewardTracks/Operations/{value}.json";
+        }
+
         public async Task<MatchStats> GetMatchStatsAsync(string matchId)
         {
             var url = $"https://{HaloCoreEndpoints.StatsOrigin}.{HaloCoreEndpoints.ServiceDomain}/hi/matches/{matchId}/stats";

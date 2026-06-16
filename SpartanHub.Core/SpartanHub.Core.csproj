@@ -155,6 +155,7 @@
     <Compile Include="Models\Playlist.cs" />
     <Compile Include="Models\PlaylistCsr.cs" />
     <Compile Include="Models\ProgressionFile.cs" />
+    <Compile Include="Models\RewardTrackDefinition.cs" />
     <Compile Include="Models\SeasonCalendar.cs" />
     <Compile Include="Models\ServiceRecord.cs" />
     <Compile Include="Models\SpartanToken.cs" />

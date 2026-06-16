@@ -24,16 +24,16 @@
         <TextBlock Grid.Row="1" Text="总览 Summary" Style="{ThemeResource SubheaderTextBlockStyle}" Margin="8,0,0,0"/>
         <StackPanel Grid.Row="2" Orientation="Horizontal">
             <controls:LabeledControl Label="总场数">
-                <TextBlock Text="1056" />
+                <TextBlock x:Name="TotalMatchesTextBlock" Text="--" />
             </controls:LabeledControl>
             <controls:LabeledControl Label="通行证等级">
-                <TextBlock Text="376" />
+                <TextBlock x:Name="BattlePassRankTextBlock" Text="--" />
             </controls:LabeledControl>
             <controls:LabeledControl Label="总击杀数">
-                <TextBlock Text="11542" />
+                <TextBlock x:Name="TotalKillsTextBlock" Text="--" />
             </controls:LabeledControl>
             <controls:LabeledControl Label="时长">
-                <TextBlock Text="6天16时5分" />
+                <TextBlock x:Name="TotalPlayTimeTextBlock" Text="--" />
             </controls:LabeledControl>
         </StackPanel>
         <Grid Grid.Row="3">
@@ -51,7 +51,9 @@
             </Grid.ColumnDefinitions>
             <controls:LabeledControl Label="赛季">
                 <Button Style="{ThemeResource TransparentButton}">
-                    <controls:SessionCardControl HorizontalAlignment="Left" />
+                    <controls:SessionCardControl
+                        x:Name="ActiveSessionCardControl"
+                        HorizontalAlignment="Left" />
                 </Button>
             </controls:LabeledControl>
             <controls:LabeledControl Grid.Column="1" Label="最近比赛">

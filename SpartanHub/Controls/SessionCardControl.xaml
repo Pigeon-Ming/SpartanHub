@@ -26,6 +26,7 @@
             HorizontalAlignment="Left"
             Background="#162024">
             <TextBlock
+                x:Name="RankTextBlock"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 FontSize="38"
@@ -41,14 +42,23 @@
                 <RowDefinition />
                 <RowDefinition />
             </Grid.RowDefinitions>
-            <TextBlock FontSize="24" Text="INFINITE" />
+            <TextBlock
+                x:Name="TrackNameTextBlock"
+                FontSize="24"
+                Text="INFINITE" />
             <ProgressBar
+                x:Name="RankProgressBar"
                 Grid.Row="1"
                 Margin="0,4,0,4"
                 Foreground="White"
                 Value="10" />
-            <TextBlock Grid.Row="2" Text="1000XP" />
             <TextBlock
+                x:Name="CurrentXpTextBlock"
+                Grid.Row="2"
+                HorizontalAlignment="Left"
+                Text="1000XP" />
+            <TextBlock
+                x:Name="RemainingXpTextBlock"
                 Grid.Row="2"
                 HorizontalAlignment="Right"
                 Text="1000XP" />
